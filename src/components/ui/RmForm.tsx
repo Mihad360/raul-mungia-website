@@ -22,6 +22,7 @@ type TFormProps<T extends FieldValues = FieldValues> = {
   onSubmit: SubmitHandler<T>;
   children: React.ReactNode;
   className?: string;
+  id?: string;
 } & TFormConfig<T>;
 
 const RmForm = <T extends FieldValues = FieldValues>({
@@ -31,6 +32,7 @@ const RmForm = <T extends FieldValues = FieldValues>({
   defaultValues,
   mode = "onSubmit",
   className,
+  id,
 }: TFormProps<T>) => {
   const methods = useForm<T>({
     resolver,
@@ -82,7 +84,12 @@ const RmForm = <T extends FieldValues = FieldValues>({
       }}
     >
       <FormProvider {...methods}>
-        <Form layout="vertical" onFinish={handleSubmit} className={className}>
+        <Form
+          id={id}
+          layout="vertical"
+          onFinish={handleSubmit}
+          className={className}
+        >
           {children}
         </Form>
       </FormProvider>

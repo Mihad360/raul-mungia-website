@@ -19,6 +19,11 @@ type TInputProps = {
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
   onPressEnter?: (e: React.KeyboardEvent) => void;
+
+  // NEW
+  required?: boolean;
+  helpText?: string;
+  rows?: number;
 };
 
 const RmInput = ({
@@ -35,6 +40,9 @@ const RmInput = ({
   prefix,
   suffix,
   onPressEnter,
+  required,
+  helpText,
+  rows = 4,
 }: TInputProps) => {
   const { control } = useFormContext();
 
@@ -45,8 +53,9 @@ const RmInput = ({
       render={({ field, fieldState: { error } }) => (
         <Form.Item
           label={label}
+          required={required}
           validateStatus={error ? "error" : ""}
-          help={error?.message}
+          help={error?.message || helpText}
           className={!label ? "mb-0!" : "mb-4"}
         >
           {type === "password" ? (
@@ -59,6 +68,17 @@ const RmInput = ({
               style={style}
               placeholder={placeholder || (label ? `Enter ${label}` : "")}
               readOnly={readOnly}
+            />
+          ) : type === "textarea" ? (
+            <Input.TextArea
+              {...field}
+              id={name}
+              disabled={disabled}
+              className={className}
+              style={style}
+              placeholder={placeholder || (label ? `Enter ${label}` : "")}
+              readOnly={readOnly}
+              rows={rows}
             />
           ) : (
             <Input
