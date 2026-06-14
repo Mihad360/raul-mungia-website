@@ -2,7 +2,7 @@
 
 import AuthCard from "@/components/auth/AuthCard";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 type TRegisterForm = {
@@ -12,7 +12,7 @@ type TRegisterForm = {
 };
 
 const RegisterPage = () => {
-  const router = useRouter();
+  // const router = useRouter();
 
   const {
     register,

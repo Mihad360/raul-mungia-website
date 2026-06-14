@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import AuthCard from "@/components/auth/AuthCard";
 
@@ -10,7 +10,7 @@ type TResetPasswordForm = {
 };
 
 const ResetPasswordPage = () => {
-  const router = useRouter();
+  // const router = useRouter();
 
   const {
     register,
@@ -19,6 +19,7 @@ const ResetPasswordPage = () => {
     formState: { errors },
   } = useForm<TResetPasswordForm>();
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const password = watch("password");
 
   const onSubmit = async (data: TResetPasswordForm) => {

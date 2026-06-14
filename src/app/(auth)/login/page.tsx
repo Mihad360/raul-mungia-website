@@ -1,9 +1,13 @@
 "use client";
 
 import AuthCard from "@/components/auth/AuthCard";
+import { Loader } from "@/components/shared/Loader";
+import { handleLoginSuccess } from "@/lib/auth/auth.handlers";
+import { useLoginUserMutation } from "@/redux/api/authApi";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type TLoginForm = {
   email: string;
@@ -12,6 +16,10 @@ type TLoginForm = {
 
 const LoginPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
+
+  const [loginUser, { isLoading }] = useLoginUserMutation();
 
   const {
     register,
@@ -20,10 +28,30 @@ const LoginPage = () => {
   } = useForm<TLoginForm>();
 
   const onSubmit = async (data: TLoginForm) => {
-    console.log("Login data:", data);
-    // TODO: dispatch login action / call API
-    // After success, redirect based on role:
-    // router.push("/dashboard") or router.push("/admin/dashboard")
+    console.log(data);
+    try {
+      const res = await loginUser(data).unwrap();
+      console.log(res);
+      // Backend response shape: { success, data: { token, ... } }
+      const token = res?.data?.accessToken || res?.data?.token;
+
+      if (!token) {
+        toast.error("Login failed — no token received");
+        return;
+      }
+
+      handleLoginSuccess(token);
+
+      toast.success("Welcome back!");
+
+      router.push(redirectTo);
+      router.refresh();
+    } catch (error: unknown) {
+      const message =
+        (error as { data?: { message?: string } })?.data?.message ||
+        "Invalid email or password";
+      toast.error(message);
+    }
   };
 
   return (
@@ -41,7 +69,8 @@ const LoginPage = () => {
             })}
             type="email"
             placeholder="Enter Your Email"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {errors.email && (
             <p className="text-xs text-[#C70A24] mt-1">
@@ -62,7 +91,8 @@ const LoginPage = () => {
             })}
             type="password"
             placeholder="Enter Your Password"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {errors.password && (
             <p className="text-xs text-[#C70A24] mt-1">
@@ -86,10 +116,18 @@ const LoginPage = () => {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1"
+          disabled={isLoading}
+          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={{ backgroundColor: "#C70A24" }}
         >
-          Login
+          {isLoading ? (
+            <>
+              <Loader size="sm" color="#ffffff" />
+              Logging in...
+            </>
+          ) : (
+            "Login"
+          )}
         </button>
 
         {/* Register link */}

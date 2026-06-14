@@ -100,8 +100,13 @@ const RevenueChart = () => {
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, ""]}
-              labelFormatter={(label) => `${label}`}
+              formatter={
+                ((value: any) => {
+                  const numValue =
+                    typeof value === "number" ? value : Number(value) || 0;
+                  return [`$${numValue.toLocaleString()}`, ""];
+                }) as any
+              }
             />
             <Legend />
             <Area

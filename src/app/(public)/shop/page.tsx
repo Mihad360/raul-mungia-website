@@ -5,6 +5,7 @@ import FilterSidebar from "@/components/shared/FilterSidebar";
 import ProductCard from "@/components/ui/ProductCard";
 import BlogSection from "@/components/home/BlogSection";
 import CTABanner from "@/components/home/CTABanner";
+import { useGetAllProductsQuery } from "@/redux/api/shopApi";
 
 const allProducts = [
   { id: 1, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
@@ -25,6 +26,9 @@ const ShopPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("default");
   const itemsPerPage = 9;
+
+  const { data: productsData } = useGetAllProductsQuery(undefined);
+  console.log(productsData);
 
   const totalPages = Math.ceil(allProducts.length / itemsPerPage);
   const startIdx = (currentPage - 1) * itemsPerPage;

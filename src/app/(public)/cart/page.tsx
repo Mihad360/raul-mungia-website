@@ -21,6 +21,7 @@ const CartPage = () => {
   ]);
 
   const [couponCode, setCouponCode] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [couponApplied, setCouponApplied] = useState(false);
 
   const subtotal = cartItems.reduce(

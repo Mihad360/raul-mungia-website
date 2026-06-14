@@ -8,7 +8,7 @@ import HeroSection from "@/components/home/HeroSection";
 import PuritySection from "@/components/home/PuritySection";
 import QualitySection from "@/components/home/QualitySection";
 import Navbar from "@/components/shared/Navbar";
-import Image from "next/image";
+// import Image from "next/image";
 
 export default function Home() {
   return (

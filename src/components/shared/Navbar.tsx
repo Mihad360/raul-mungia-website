@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Heart,
   Search,
@@ -9,6 +11,10 @@ import {
   ChevronDown,
   Menu,
   X,
+  User,
+  LogOut,
+  Package,
+  UserCircle,
 } from "lucide-react";
 import Logo from "./Logo";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -16,30 +22,49 @@ import {
   AUTH_ITEMS,
   NAVIGATION_ITEMS,
   RESOURCES_ITEMS,
-  ROUTES,
 } from "@/utils/navigation";
+import { getClientToken } from "@/lib/auth/cookies.client";
+import { handleLogout } from "@/lib/auth/auth.handlers";
+import { toast } from "sonner";
+import { useGetMyProfileQuery } from "@/redux/api/authApi";
 
 const Navbar = () => {
+  const router = useRouter();
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  // ─── Hydration-safe auth check ─────────────────────────
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    setIsLoggedIn(!!getClientToken());
+  }, []);
+
+  const { data: profileData } = useGetMyProfileQuery(undefined, {
+    skip: !isLoggedIn,
+  });
+
+  const user = profileData?.data;
+
+  const onLogoutClick = () => {
+    handleLogout();
+    setIsLoggedIn(false);
+    setProfileOpen(false);
+    setMobileOpen(false);
+    toast.success("Logged out successfully");
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <>
       <header className="w-full sticky top-0 z-30 bg-white">
-        {/* Announcement bar */}
-        <div className="bg-gray-100 text-center py-2 text-sm text-gray-600">
-          Get 10% OFF your First{" "}
-          <Link
-            href={ROUTES.REGISTER}
-            className="font-semibold hover:underline cursor-pointer"
-            style={{ color: "#C70A24" }}
-          >
-            Sign Up!
-          </Link>
-        </div>
-
         {/* Main nav */}
         <div className="border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -91,16 +116,117 @@ const Navbar = () => {
 
             {/* Right — actions (Desktop) */}
             <div className="hidden md:flex items-center gap-4 ml-auto">
-              {AUTH_ITEMS.map((item) => (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className="text-sm text-gray-700 font-medium hover:text-[#C70A24] transition-colors cursor-pointer"
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {/* ─── Auth Section ─── */}
+              {!mounted ? (
+                <div className="w-20 h-4 bg-gray-100 rounded animate-pulse" />
+              ) : !isLoggedIn ? (
+                <>
+                  {AUTH_ITEMS.map((item) => (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className="text-sm text-gray-700 font-medium hover:text-[#C70A24] transition-colors cursor-pointer"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </>
+              ) : (
+                <div className="relative">
+                  <button
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="flex items-center gap-2 text-sm text-gray-700 font-medium hover:text-[#C70A24] transition-colors cursor-pointer"
+                  >
+                    {/* ─── Avatar (Desktop) ─── */}
+                    {user?.profileImage ? (
+                      <Image
+                        src={user.profileImage}
+                        alt={user.name || "User"}
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                        style={{ backgroundColor: "#C70A24" }}
+                      >
+                        {user?.name?.charAt(0).toUpperCase() || (
+                          <User size={16} />
+                        )}
+                      </div>
+                    )}
+                    <span className="max-w-[120px] truncate">
+                      {user?.name || "Account"}
+                    </span>
+                    <ChevronDown size={14} />
+                  </button>
 
+                  {profileOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setProfileOpen(false)}
+                      />
+
+                      <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-100 rounded-lg shadow-lg py-2 z-50">
+                        {user && (
+                          <div className="px-4 py-3 border-b border-gray-100">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {user.name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {user.email}
+                            </p>
+                          </div>
+                        )}
+
+                        <Link
+                          href="/account"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#C70A24] transition-colors cursor-pointer"
+                        >
+                          <UserCircle size={16} />
+                          My Account
+                        </Link>
+
+                        <Link
+                          href="/orders"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#C70A24] transition-colors cursor-pointer"
+                        >
+                          <Package size={16} />
+                          My Orders
+                        </Link>
+
+                        {(user?.role === "admin" ||
+                          user?.role === "super_admin") && (
+                          <Link
+                            href="/admin/dashboard"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#C70A24] transition-colors cursor-pointer"
+                          >
+                            <User size={16} />
+                            Admin Dashboard
+                          </Link>
+                        )}
+
+                        <div className="border-t border-gray-100 my-1" />
+
+                        <button
+                          onClick={onLogoutClick}
+                          className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-[#C70A24] transition-colors cursor-pointer"
+                        >
+                          <LogOut size={16} />
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Other actions ─── */}
               <Link
                 href="/wishlist"
                 className="text-gray-600 hover:text-[#C70A24] transition-colors cursor-pointer"
@@ -148,7 +274,6 @@ const Navbar = () => {
               </Link>
             ))}
 
-            {/* Resources in mobile */}
             <div className="flex flex-col gap-2 pl-2 border-l-2 border-gray-200">
               <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
                 Resources
@@ -165,21 +290,100 @@ const Navbar = () => {
               ))}
             </div>
 
-            {AUTH_ITEMS.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className="text-sm text-gray-700 font-medium cursor-pointer hover:text-[#C70A24] transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
+            <div className="pt-3 border-t border-gray-100">
+              {!mounted ? (
+                <div className="w-24 h-4 bg-gray-100 rounded animate-pulse" />
+              ) : !isLoggedIn ? (
+                <div className="flex flex-col gap-3">
+                  {AUTH_ITEMS.map((item) => (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className="text-sm text-gray-700 font-medium cursor-pointer hover:text-[#C70A24] transition-colors"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {user && (
+                    <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+                      {/* ─── Avatar (Mobile) ─── */}
+                      {user.profileImage ? (
+                        <Image
+                          src={user.profileImage}
+                          alt={user.name || "User"}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          style={{ backgroundColor: "#C70A24" }}
+                        >
+                          {user.name?.charAt(0).toUpperCase() || (
+                            <User size={18} />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Link
+                    href="/account"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-[#C70A24] transition-colors cursor-pointer"
+                  >
+                    <UserCircle size={16} />
+                    My Account
+                  </Link>
+
+                  <Link
+                    href="/orders"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-[#C70A24] transition-colors cursor-pointer"
+                  >
+                    <Package size={16} />
+                    My Orders
+                  </Link>
+
+                  {(user?.role === "admin" || user?.role === "super_admin") && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-[#C70A24] transition-colors cursor-pointer"
+                    >
+                      <User size={16} />
+                      Admin Dashboard
+                    </Link>
+                  )}
+
+                  <button
+                    onClick={onLogoutClick}
+                    className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-[#C70A24] transition-colors cursor-pointer text-left"
+                  >
+                    <LogOut size={16} />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </header>
 
-      {/* Search Drawer (Optional) */}
+      {/* Search Drawer */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
           <div className="w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl">

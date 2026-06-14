@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import AuthCard from "@/components/auth/AuthCard";
 
@@ -9,7 +8,7 @@ type TForgotPasswordForm = {
 };
 
 const ForgotPasswordPage = () => {
-  const router = useRouter();
+  // const router = useRouter();
 
   const {
     register,

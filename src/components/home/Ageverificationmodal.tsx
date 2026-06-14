@@ -28,8 +28,8 @@ const AgeVerificationModal = () => {
     window.location.href = "https://www.google.com";
   };
 
-  if (!mounted) return null;
-  if (!isOpen) return null;
+  // Don't render anything until client-mounted + verified
+  if (!mounted || !isOpen) return null;
 
   return (
     <div

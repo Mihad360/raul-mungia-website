@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -6,6 +7,7 @@ import { message } from "antd";
 import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
 import RmModal from "@/components/ui/RmModal";
+import Image from "next/image";
 
 export default function ProfileSettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -55,10 +57,12 @@ export default function ProfileSettingsPage() {
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">
               {avatarPreview ? (
-                <img
+                <Image 
                   src={avatarPreview}
-                  alt="Avatar"
-                  className="w-full h-full rounded-full object-cover"
+                  alt="Preview"
+                  fill
+                  className="object-contain rounded-lg"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               ) : (
                 "AU"

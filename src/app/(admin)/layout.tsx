@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+
 import AdminNavbar from "@/components/admin/Navbar";
 import AdminSidebar from "@/components/admin/Sidebar";
 

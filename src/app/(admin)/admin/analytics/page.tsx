@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { TrendingUp, DollarSign, Users, Package } from "lucide-react";
@@ -50,6 +51,15 @@ const SalesRevenueChart = () => {
     { month: "May", sales: 0, revenue: 0 },
   ];
 
+  // Fixed formatter function with proper type handling
+  const formatTooltipValue = (value: number | undefined | null) => {
+    // Handle undefined, null, or non-numeric values
+    if (value === undefined || value === null || typeof value !== "number") {
+      return ["$0", ""];
+    }
+    return [`$${value.toLocaleString()}`, ""];
+  };
+
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -81,7 +91,13 @@ const SalesRevenueChart = () => {
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, ""]}
+              formatter={
+                ((value: any) => {
+                  const numValue =
+                    typeof value === "number" ? value : Number(value) || 0;
+                  return [`$${numValue.toLocaleString()}`, ""];
+                }) as any
+              }
             />
             <Legend />
             <Area

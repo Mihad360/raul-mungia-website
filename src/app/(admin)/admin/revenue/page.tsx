@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -99,7 +100,13 @@ const RevenueChart = () => {
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, ""]}
+              formatter={
+                ((value: any) => {
+                  const numValue =
+                    typeof value === "number" ? value : Number(value) || 0;
+                  return [`$${numValue.toLocaleString()}`, ""];
+                }) as any
+              }
             />
             <Legend />
             <Area

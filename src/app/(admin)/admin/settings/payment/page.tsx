@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
@@ -8,13 +9,13 @@ import {
   Trash2,
   Upload,
   X,
-  Banknote,
   CreditCard,
 } from "lucide-react";
 import { message } from "antd";
 import RmModal from "@/components/ui/RmModal";
 import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
+import Image from "next/image";
 
 type PaymentMethod = {
   id: string;
@@ -177,10 +178,12 @@ export default function PaymentMethodPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center">
                       {method.image ? (
-                        <img
+                        <Image
                           src={method.image}
-                          alt={method.bankName}
-                          className="w-full h-full rounded-lg object-cover"
+                          alt="Preview"
+                          fill
+                          className="object-contain rounded-lg"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       ) : (
                         <CreditCard size={24} className="text-red-600" />
@@ -269,10 +272,12 @@ export default function PaymentMethodPage() {
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-gray-300 transition-colors cursor-pointer">
                 {imagePreview ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"
@@ -366,10 +371,12 @@ export default function PaymentMethodPage() {
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-gray-300 transition-colors cursor-pointer">
                 {editImagePreview ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={editImagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"

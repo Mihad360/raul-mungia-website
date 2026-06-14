@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
@@ -7,6 +8,7 @@ import { message } from "antd";
 import RmModal from "@/components/ui/RmModal";
 import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
+import Image from "next/image";
 
 type Certification = {
   id: string;
@@ -167,10 +169,12 @@ export default function CertificationPage() {
                 >
                   {cert.image ? (
                     <div className="mb-4">
-                      <img
+                      <Image
                         src={cert.image}
-                        alt={cert.title}
-                        className="w-full h-32 object-cover rounded-lg"
+                        alt="Preview"
+                        fill
+                        className="object-contain rounded-lg"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
                   ) : (
@@ -262,10 +266,12 @@ export default function CertificationPage() {
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-gray-300 transition-colors cursor-pointer">
                 {imagePreview ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"
@@ -359,10 +365,12 @@ export default function CertificationPage() {
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-gray-300 transition-colors cursor-pointer">
                 {editImagePreview ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={editImagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -5,6 +6,7 @@ import { Save, X, Upload } from "lucide-react";
 import { message } from "antd";
 import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
+import Image from "next/image";
 
 export default function AboutUsPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -74,10 +76,12 @@ export default function AboutUsPage() {
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-gray-300 transition-colors cursor-pointer">
                 {imagePreview ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <button
                       type="button"

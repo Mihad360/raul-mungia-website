@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-render */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -20,6 +22,8 @@ import RmInput from "@/components/ui/RmInput";
 import RmSelect from "@/components/ui/RmSelect";
 import RmPagination from "@/components/ui/RmPagination";
 
+type ProductStatus = "in-stock" | "low-stock" | "out-of-stock";
+
 type Product = {
   id: string;
   title: string;
@@ -29,15 +33,22 @@ type Product = {
   stock: number;
   sizes: string[];
   category: string;
-  status: "in-stock" | "low-stock" | "out-of-stock";
+  status: ProductStatus;
   image?: string;
   additionalInfo?: string;
   compliance?: string;
   createdAt?: string;
 };
 
+// Helper function to determine product status
+const getProductStatus = (stock: number): ProductStatus => {
+  if (stock > 20) return "in-stock";
+  if (stock > 0) return "low-stock";
+  return "out-of-stock";
+};
+
 // Status Badge Component
-const StatusBadge = ({ status }: { status: Product["status"] }) => {
+const StatusBadge = ({ status }: { status: ProductStatus }) => {
   const config = {
     "in-stock": {
       bg: "bg-green-50",
@@ -562,21 +573,17 @@ export default function ProductsPage() {
   );
 
   const handleAddProduct = (data: Partial<Product>) => {
+    const newStock = data.stock || 0;
     const newProduct: Product = {
       id: (products.length + 1).toString(),
       title: data.title || "",
       sku: `PRD-${String(products.length + 1).padStart(3, "0")}`,
       description: data.description || "",
       price: data.price || 0,
-      stock: data.stock || 0,
+      stock: newStock,
       sizes: data.sizes || [],
       category: data.category || "Uncategorized",
-      status:
-        (data.stock || 0) > 20
-          ? "in-stock"
-          : (data.stock || 0) > 0
-            ? "low-stock"
-            : "out-of-stock",
+      status: getProductStatus(newStock),
       additionalInfo: data.additionalInfo,
       compliance: data.compliance,
       createdAt: new Date().toISOString().split("T")[0],
@@ -586,24 +593,28 @@ export default function ProductsPage() {
 
   const handleEditProduct = (data: Partial<Product>) => {
     if (!selectedProduct) return;
+
+    const updatedStock =
+      data.stock !== undefined ? data.stock : selectedProduct.stock;
+
     const updatedProducts = products.map((p) =>
       p.id === selectedProduct.id
         ? {
             ...p,
-            title: data.title || p.title,
-            price: data.price || p.price,
-            stock: data.stock || p.stock,
-            sizes: data.sizes || p.sizes,
-            category: data.category || p.category,
-            description: data.description || p.description,
-            additionalInfo: data.additionalInfo,
-            compliance: data.compliance,
-            status:
-              (data.stock || p.stock) > 20
-                ? "in-stock"
-                : (data.stock || p.stock) > 0
-                  ? "low-stock"
-                  : "out-of-stock",
+            title: data.title !== undefined ? data.title : p.title,
+            price: data.price !== undefined ? data.price : p.price,
+            stock: updatedStock,
+            sizes: data.sizes !== undefined ? data.sizes : p.sizes,
+            category: data.category !== undefined ? data.category : p.category,
+            description:
+              data.description !== undefined ? data.description : p.description,
+            additionalInfo:
+              data.additionalInfo !== undefined
+                ? data.additionalInfo
+                : p.additionalInfo,
+            compliance:
+              data.compliance !== undefined ? data.compliance : p.compliance,
+            status: getProductStatus(updatedStock),
           }
         : p,
     );
