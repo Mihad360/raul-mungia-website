@@ -1,14 +1,18 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import AuthCard from "@/components/auth/AuthCard";
+import { useForgetPasswordMutation } from "@/redux/api/authApi";
 
 type TForgotPasswordForm = {
   email: string;
 };
 
 const ForgotPasswordPage = () => {
-  // const router = useRouter();
+  const router = useRouter();
+  const [forgotPassword, { isLoading }] = useForgetPasswordMutation();
 
   const {
     register,
@@ -17,9 +21,18 @@ const ForgotPasswordPage = () => {
   } = useForm<TForgotPasswordForm>();
 
   const onSubmit = async (data: TForgotPasswordForm) => {
-    console.log("Send OTP to:", data.email);
-    // TODO: call API to send OTP
-    // router.push("/verify-otp");
+    try {
+      await forgotPassword({ email: data.email }).unwrap();
+
+      // Save email so verify-otp page can read it
+      localStorage.setItem("resetEmail", data.email);
+
+      toast.success("OTP sent to your email");
+      router.push("/verify-otp");
+    } catch (err) {
+      const error = err as { data?: { message?: string } };
+      toast.error(error?.data?.message || "Failed to send OTP");
+    }
   };
 
   return (
@@ -37,7 +50,8 @@ const ForgotPasswordPage = () => {
             })}
             type="email"
             placeholder="Enter Your Email"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60"
           />
           {errors.email && (
             <p className="text-xs text-[#C70A24] mt-1">
@@ -49,10 +63,11 @@ const ForgotPasswordPage = () => {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1"
+          disabled={isLoading}
+          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ backgroundColor: "#C70A24" }}
         >
-          Send OTP
+          {isLoading ? "Sending..." : "Send OTP"}
         </button>
       </form>
     </AuthCard>

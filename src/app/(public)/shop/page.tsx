@@ -1,62 +1,159 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import FilterSidebar from "@/components/shared/FilterSidebar";
 import ProductCard from "@/components/ui/ProductCard";
-import BlogSection from "@/components/home/BlogSection";
 import CTABanner from "@/components/home/CTABanner";
 import { useGetAllProductsQuery } from "@/redux/api/shopApi";
+import { useAddToCartMutation } from "@/redux/api/cartApi";
+import { Loader } from "@/components/shared/Loader";
+import RmPagination from "@/components/ui/RmPagination";
+import { getClientToken } from "@/lib/auth/cookies.client";
 
-const allProducts = [
-  { id: 1, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 2, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 3, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 4, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 5, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 6, name: "TB-500", variant: "5 mg / Vial", price: "$39.99" },
-  { id: 7, name: "MK-677", variant: "30 mg / Bottle", price: "$59.99" },
-  { id: 8, name: "LGD-4033", variant: "10 mg / Capsule", price: "$69.99" },
-  { id: 9, name: "BPC-157", variant: "5 mg / Vial", price: "$49.99" },
-  { id: 10, name: "CJC-1295", variant: "2 mg / Vial", price: "$39.99" },
-  { id: 11, name: "Ipamorelin", variant: "5 mg / Vial", price: "$44.99" },
-  { id: 12, name: "Melanotan II", variant: "10 mg / Vial", price: "$54.99" },
-];
+interface IProductVariant {
+  _id: string;
+  size: string;
+  price: number;
+  originalPrice: number | null;
+  stock: number;
+  weight: number;
+}
+
+interface IProduct {
+  _id: string;
+  title: string;
+  productCode: string;
+  category: { _id: string; name: string; description: string | null };
+  categoryName: string;
+  variants: IProductVariant[];
+  description: string;
+  mainImage: string;
+  images: string[];
+  isActive: boolean;
+}
+
+const ITEMS_PER_PAGE = 9;
 
 const ShopPage = () => {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("default");
-  const itemsPerPage = 9;
+  const [filters, setFilters] = useState({
+    category: "",
+    minPrice: 0,
+    maxPrice: 500,
+  });
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
-  const { data: productsData } = useGetAllProductsQuery(undefined);
-  console.log(productsData);
+  const [addToCart] = useAddToCartMutation();
 
-  const totalPages = Math.ceil(allProducts.length / itemsPerPage);
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const displayedProducts = allProducts.slice(
-    startIdx,
-    startIdx + itemsPerPage,
-  );
+  const sortMap: Record<string, string> = {
+    default: "",
+    "price-low": "variants.price",
+    "price-high": "-variants.price",
+    newest: "-createdAt",
+  };
+
+  const queryArgs = {
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+    sort: sortMap[sortBy] || undefined,
+    categoryName: filters.category || undefined,
+    minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
+    maxPrice: filters.maxPrice < 500 ? filters.maxPrice : undefined,
+  };
+
+  const { data, isLoading, isFetching, isError } =
+    useGetAllProductsQuery(queryArgs);
+
+  const products: IProduct[] = data?.data || [];
+  const meta = data?.meta || {
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPage: 1,
+  };
+
+  const startIdx = (meta.page - 1) * meta.limit;
+  const showingFrom = products.length > 0 ? startIdx + 1 : 0;
+  const showingTo = startIdx + products.length;
+
+  const handleFiltersChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  /** Quick add — uses first variant + qty 1 */
+  const handleQuickAddToCart = async (product: IProduct) => {
+    // Auth check
+    const token = getClientToken();
+    if (!token) {
+      toast.error("Please log in to add items to cart");
+      router.push("/login");
+      return;
+    }
+
+    // Prevent rapid double-clicks
+    if (addingProductId) return;
+
+    const defaultVariant = product.variants[0];
+    if (!defaultVariant) {
+      toast.error("No variants available for this product");
+      return;
+    }
+    if (defaultVariant.stock === 0) {
+      toast.error("This product is out of stock");
+      return;
+    }
+
+    try {
+      setAddingProductId(product._id);
+      await addToCart({
+        productId: product._id,
+        size: defaultVariant.size,
+        quantity: 1,
+      }).unwrap();
+      toast.success(`Added ${product.title} (${defaultVariant.size}) to cart`);
+    } catch (err) {
+      const error = err as { data?: { message?: string } };
+      toast.error(error?.data?.message || "Failed to add to cart");
+    } finally {
+      setAddingProductId(null);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white">
-      {/* <Navbar /> */}
-
-      {/* Shop header */}
+      {/* Header */}
       <section className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">Shop</h1>
             <p className="text-sm text-gray-500">
-              Showing 1–{Math.min(startIdx + itemsPerPage, allProducts.length)}{" "}
-              of {allProducts.length} results
+              {isLoading ? (
+                "Loading products..."
+              ) : meta.total > 0 ? (
+                <>
+                  Showing {showingFrom}–{showingTo} of {meta.total} results
+                </>
+              ) : (
+                "No products available"
+              )}
             </p>
           </div>
 
-          {/* Sorting dropdown */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 hover:border-gray-300 transition-colors outline-none focus:border-[#C70A24]"
+            onChange={(e) => handleSortChange(e.target.value)}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 hover:border-gray-300 transition-colors outline-none focus:border-[#C70A24] disabled:opacity-60 cursor-pointer"
           >
             <option value="default">Default sorting</option>
             <option value="price-low">Price: Low to High</option>
@@ -66,82 +163,76 @@ const ShopPage = () => {
         </div>
       </section>
 
-      {/* Main content — filters + products */}
       <div className="max-w-7xl mx-auto px-6 pb-14">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar filters */}
-          <FilterSidebar />
+          <FilterSidebar
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+          />
 
-          {/* Product grid */}
           <div className="flex-1">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {displayedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id} // Add this
-                  name={product.name}
-                  variant={product.variant}
-                  price={product.price}
+            {isLoading && (
+              <div className="flex justify-center items-center py-20">
+                <Loader size="lg" />
+              </div>
+            )}
+
+            {!isLoading && isError && (
+              <div className="text-center py-20">
+                <p className="text-gray-600 mb-2">Failed to load products</p>
+                <p className="text-sm text-gray-400">
+                  Please try refreshing the page
+                </p>
+              </div>
+            )}
+
+            {!isLoading && !isError && products.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-gray-600 mb-2">No products found</p>
+                <p className="text-sm text-gray-400">
+                  Try adjusting your filters
+                </p>
+              </div>
+            )}
+
+            {!isLoading && !isError && products.length > 0 && (
+              <>
+                <div
+                  className={`grid grid-cols-2 md:grid-cols-3 gap-4 transition-opacity ${
+                    isFetching ? "opacity-60" : "opacity-100"
+                  }`}
+                >
+                  {products.map((product) => {
+                    const lowestPrice = Math.min(
+                      ...product.variants.map((v) => v.price),
+                    );
+                    const defaultSize = product.variants[0]?.size || "";
+
+                    return (
+                      <ProductCard
+                        key={product._id}
+                        id={product._id}
+                        name={product.title}
+                        variant={defaultSize}
+                        price={`$${lowestPrice.toFixed(2)}`}
+                        image={product.mainImage}
+                        onAddToCart={() => handleQuickAddToCart(product)}
+                      />
+                    );
+                  })}
+                </div>
+
+                <RmPagination
+                  currentPage={meta.page}
+                  totalPages={meta.totalPage}
+                  onPageChange={setCurrentPage}
+                  showFirstLast
                 />
-              ))}
-            </div>
-
-            {/* "View More Products" button at bottom */}
-            <div className="flex justify-center mt-10">
-              <button
-                className="px-6 py-2.5 rounded-lg border text-sm font-semibold hover:border-gray-400 transition-colors"
-                style={{ borderColor: "#C70A24", color: "#C70A24" }}
-              >
-                View More Products
-              </button>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex justify-center items-center gap-2 mt-8">
-              {/* Previous button */}
-              {currentPage > 1 && (
-                <button
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-[#C70A24] hover:text-white transition"
-                  aria-label="Previous page"
-                >
-                  ←
-                </button>
-              )}
-
-              {/* Page numbers */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-full text-sm font-medium transition ${
-                      page === currentPage
-                        ? "bg-[#C70A24] text-white"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ),
-              )}
-
-              {/* Next button */}
-              {currentPage < totalPages && (
-                <button
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-[#C70A24] hover:text-white transition"
-                  aria-label="Next page"
-                >
-                  →
-                </button>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       </div>
-
-      <BlogSection />
       <CTABanner />
     </main>
   );

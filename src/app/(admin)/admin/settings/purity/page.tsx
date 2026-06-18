@@ -1,105 +1,109 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState } from "react";
-import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Loader2 } from "lucide-react";
 import { message } from "antd";
+import { Loader } from "@/components/shared/Loader";
+import RichEditor from "@/components/ui/RichEditor";
+import { useGetExplorePurityQuery } from "@/redux/api/settingsApi";
+import { useUpdateExplorePurityMutation } from "@/redux/api/adminApi";
 
 export default function ExplorePurityPage() {
-  const [content, setContent] = useState(`# Explore Purity
+  const [description, setDescription] = useState<string>("");
 
-## Our Commitment to Purity
-At Business Hub, purity is not just a standard—it's our promise. We are committed to providing products of the highest purity levels, backed by rigorous testing and quality assurance protocols.
+  const { data: purityData, isLoading } = useGetExplorePurityQuery(undefined);
+  const [updatePurity, { isLoading: isUpdating }] =
+    useUpdateExplorePurityMutation();
 
-## What is Purity?
-Purity refers to the percentage of active ingredient in a product, free from contaminants, impurities, or diluents. Higher purity means better efficacy and safety.
+  const purityContent: any = Array.isArray(purityData?.data)
+    ? purityData?.data?.[0]
+    : purityData?.data;
 
-## Our Purity Standards
+  useEffect(() => {
+    if (purityContent?.description) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDescription(purityContent.description);
+    }
+  }, [purityContent?.description]);
 
-### 99%+ Purity Guarantee
-All our products undergo multiple rounds of testing to ensure they meet or exceed 99% purity standards.
+  const handleSave = async () => {
+    if (
+      !description ||
+      description === "<p></p>" ||
+      description.trim() === ""
+    ) {
+      message.error("Content cannot be empty");
+      return;
+    }
 
-### Third-Party Testing
-We partner with independent, ISO-certified laboratories to verify the purity of every batch before it reaches our customers.
-
-### Heavy Metal Testing
-Every product is screened for heavy metals including lead, mercury, arsenic, and cadmium.
-
-### Residual Solvent Analysis
-We test for residual solvents to ensure complete removal during the manufacturing process.
-
-## Certifications
-
-### ISO 9001:2024
-Quality management system certification ensuring consistent product quality.
-
-### GMP Compliance
-Good Manufacturing Practices certified facility for pharmaceutical-grade production.
-
-### FDA Registered Facility
-Our manufacturing facility is registered with the FDA and follows strict guidelines.
-
-## Quality Control Process
-
-1. **Raw Material Testing** - All incoming materials are tested before production
-2. **In-Process Testing** - Samples are taken during production for real-time quality checks
-3. **Final Product Testing** - Every batch undergoes comprehensive purity analysis
-4. **Stability Testing** - Products are tested over time to ensure purity remains consistent
-5. **Certificate of Analysis** - Each order includes a detailed CoA with purity results
-
-## Why Purity Matters
-
-### Safety
-Higher purity means fewer contaminants that could cause adverse reactions.
-
-### Efficacy
-Pure compounds perform predictably and deliver consistent results.
-
-### Reliability
-Standardized purity ensures you get the same quality every time you order.
-
-## Transparency
-We believe in complete transparency. You can request the Certificate of Analysis for any product batch by contacting our support team.
-
-## Our Promise
-Every product you receive from Business Hub comes with:
-- Verified purity of 99% or higher
-- Complete chain of custody documentation
-- Batch-specific test results available upon request
-- Money-back guarantee if purity standards aren't met
-
-## Contact Our Quality Team
-For detailed purity reports or questions about our testing protocols, contact our quality assurance team at quality@businesshub.com`);
-
-  const handleSave = () => {
-    console.log("Explore Purity saved:", content);
-    message.success("Explore Purity saved successfully!");
+    try {
+      await updatePurity({ description }).unwrap();
+      message.success("Explore Purity updated successfully!");
+    } catch (err: any) {
+      message.error(
+        err?.data?.message || err?.message || "Failed to update Explore Purity",
+      );
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-100 p-12 flex justify-center">
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-100">
       <div className="p-6 border-b border-gray-100">
         <h2 className="text-xl font-semibold text-gray-900">Explore Purity</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Manage your purity information and standards
+          Manage your purity information and standards. This appears on the
+          public Explore Purity page.
         </p>
       </div>
 
       <div className="p-6">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50 resize-y min-h-[500px] font-mono"
-          placeholder="Enter explore purity content here..."
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Content <span className="text-red-500">*</span>
+          </label>
 
-        <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
+          <RichEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Write about your purity standards, certifications, testing..."
+            minHeight={400}
+          />
+
+          <p className="text-xs text-gray-400">
+            Use the toolbar to format text with headings, lists, alignment, and
+            more.
+          </p>
+        </div>
+
+        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
           <button
+            type="button"
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer"
+            disabled={isUpdating}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: "#C70A24" }}
           >
-            <Save size={16} />
-            Save Changes
+            {isUpdating ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Update Explore Purity
+              </>
+            )}
           </button>
         </div>
       </div>

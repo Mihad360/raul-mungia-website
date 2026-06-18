@@ -24,6 +24,9 @@ export const baseApi = createApi({
     "disclaimer",
     "explorePurity",
     "notification",
+    "about",
+    "privacy",
+    "terms",
   ],
   baseQuery: axiosBaseQuery({
     baseUrl: envConfig.baseApi as string,

@@ -1,271 +1,112 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import {
   Search,
   Users,
   UserPlus,
   Calendar,
-  DollarSign,
   Activity,
   Mail,
   Phone,
   MapPin,
-  Package,
-  ShoppingBag,
+  Shield,
+  Eye,
+  User as UserIcon,
 } from "lucide-react";
 import RmPagination from "@/components/ui/RmPagination";
 import RmModal from "@/components/ui/RmModal";
+import RmTable from "@/components/ui/RmTable";
+import { useGetUsersQuery } from "@/redux/api/userApi";
 
-type Customer = {
-  id: string;
-  name: string;
+// ─── Backend-aligned types ────────────────────────────────────
+type Role = "user" | "admin" | "super_admin";
+
+type User = {
+  _id: string;
   email: string;
-  phone: string;
-  address: string;
-  avatar: string;
-  orders: number;
-  totalSpent: number;
-  joinedDate: string;
-  status: "active" | "inactive";
-  lastOrder?: string;
+  name?: string;
+  phone?: string | null;
+  address?: string | null;
+  profileImage?: string | null;
+  role: Role;
+  isActive: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: "active" | "inactive" }) => {
+// ─── Helpers ──────────────────────────────────────────────────
+const getInitials = (user: User): string => {
+  const source = user.name || user.email;
+  if (!source) return "?";
+  const parts = source.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
+const formatDate = (iso?: string): string => {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const roleConfig: Record<
+  Role,
+  { label: string; bg: string; text: string; icon: any }
+> = {
+  user: {
+    label: "Customer",
+    bg: "bg-gray-100",
+    text: "text-gray-700",
+    icon: UserIcon,
+  },
+  admin: {
+    label: "Admin",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    icon: Shield,
+  },
+  super_admin: {
+    label: "Super Admin",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    icon: Shield,
+  },
+};
+
+// ─── Role Badge ───────────────────────────────────────────────
+const RoleBadge = ({ role }: { role: Role }) => {
+  const cfg = roleConfig[role];
+  const Icon = cfg.icon;
   return (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        status === "active"
-          ? "bg-green-50 text-green-700"
-          : "bg-gray-50 text-gray-700"
-      }`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}
     >
-      {status === "active" ? "Active" : "Inactive"}
+      <Icon size={11} />
+      {cfg.label}
     </span>
   );
 };
 
-// Customer Card Component
-const CustomerCard = ({
-  customer,
-  onClick,
-}: {
-  customer: Customer;
-  onClick: () => void;
-}) => {
-  return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-lg border border-gray-100 p-6 hover:shadow-md transition-all cursor-pointer hover:border-gray-200"
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-lg">
-            {customer.avatar}
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-lg">
-              {customer.name}
-            </h3>
-            <p className="text-sm text-gray-500">{customer.email}</p>
-          </div>
-        </div>
-        <StatusBadge status={customer.status} />
-      </div>
+// ─── Status Badge ─────────────────────────────────────────────
+const StatusBadge = ({ isActive }: { isActive: boolean }) => (
+  <span
+    className={`px-2 py-1 rounded-full text-xs font-semibold ${
+      isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"
+    }`}
+  >
+    {isActive ? "Active" : "Inactive"}
+  </span>
+);
 
-      {/* Contact Info */}
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Phone size={14} className="text-gray-400" />
-          <span>{customer.phone}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <MapPin size={14} className="text-gray-400" />
-          <span>{customer.address}</span>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Orders</p>
-          <p className="text-xl font-bold text-gray-900">{customer.orders}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Total Spent</p>
-          <p className="text-xl font-bold text-green-600">
-            ${customer.totalSpent.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Joined</p>
-          <p className="text-sm font-semibold text-gray-900">
-            {customer.joinedDate}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Customer Details Modal
-const CustomerDetailsModal = ({
-  isOpen,
-  onClose,
-  customer,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  customer: Customer | null;
-}) => {
-  if (!customer) return null;
-
-  const recentOrders = [
-    { id: "#ORD-1001", date: "2026-05-09", amount: 299, status: "completed" },
-    { id: "#ORD-1002", date: "2026-05-01", amount: 149, status: "completed" },
-    { id: "#ORD-1003", date: "2026-04-25", amount: 599, status: "processing" },
-  ];
-
-  return (
-    <RmModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Customer Details"
-      width="max-w-3xl"
-      footer={
-        <div className="flex gap-3">
-          <button className="flex-1 py-2.5 rounded-lg text-gray-700 font-semibold border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer">
-            Send Message
-          </button>
-          <button
-            className="flex-1 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer"
-            style={{ backgroundColor: "#C70A24" }}
-          >
-            View All Orders
-          </button>
-        </div>
-      }
-    >
-      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-        {/* Profile Header */}
-        <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-          <div className="w-20 h-20 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-2xl">
-            {customer.avatar}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {customer.name}
-              </h2>
-              <StatusBadge status={customer.status} />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail size={14} />
-                <span>{customer.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone size={14} />
-                <span>{customer.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin size={14} />
-                <span>{customer.address}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ShoppingBag size={16} className="text-gray-500" />
-              <p className="text-xs text-gray-500">Total Orders</p>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {customer.orders}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign size={16} className="text-gray-500" />
-              <p className="text-xs text-gray-500">Total Spent</p>
-            </div>
-            <p className="text-2xl font-bold text-green-600">
-              ${customer.totalSpent.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar size={16} className="text-gray-500" />
-              <p className="text-xs text-gray-500">Member Since</p>
-            </div>
-            <p className="text-lg font-semibold text-gray-900">
-              {customer.joinedDate}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity size={16} className="text-gray-500" />
-              <p className="text-xs text-gray-500">Last Order</p>
-            </div>
-            <p className="text-sm font-semibold text-gray-900">
-              {customer.lastOrder || "N/A"}
-            </p>
-          </div>
-        </div>
-
-        {/* Recent Orders */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Package size={18} />
-            Recent Orders
-          </h3>
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-200">
-              <tr>
-                <th className="text-left py-3 font-semibold text-gray-900">
-                  Order ID
-                </th>
-                <th className="text-left py-3 font-semibold text-gray-900">
-                  Date
-                </th>
-                <th className="text-left py-3 font-semibold text-gray-900">
-                  Amount
-                </th>
-                <th className="text-left py-3 font-semibold text-gray-900">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="border-b border-gray-100">
-                  <td className="py-3 font-medium text-gray-900">{order.id}</td>
-                  <td className="py-3 text-gray-600">{order.date}</td>
-                  <td className="py-3 font-semibold text-gray-900">
-                    ${order.amount}
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">
-                      {order.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </RmModal>
-  );
-};
-
-// KPI Card Component
+// ─── KPI Card ─────────────────────────────────────────────────
 const KPICard = ({
   title,
   value,
@@ -273,183 +114,293 @@ const KPICard = ({
   color,
 }: {
   title: string;
-  value: string;
+  value: string | number;
   icon: any;
   color: string;
+}) => (
+  <div className="bg-white rounded-lg border border-gray-100 p-6 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between mb-4">
+      <div
+        className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
+        style={{ backgroundColor: color }}
+      >
+        <Icon size={24} />
+      </div>
+    </div>
+    <p className="text-sm text-gray-600 font-medium mb-2">{title}</p>
+    <p className="text-3xl font-bold text-gray-900">{value}</p>
+  </div>
+);
+
+// ─── User Details Modal ───────────────────────────────────────
+const UserDetailsModal = ({
+  isOpen,
+  onClose,
+  user,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  user: User | null;
 }) => {
+  if (!user) return null;
+
   return (
-    <div className="bg-white rounded-lg border border-gray-100 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div
-          className={`w-12 h-12 rounded-lg flex items-center justify-center text-white`}
-          style={{ backgroundColor: color }}
-        >
-          <Icon size={24} />
+    <RmModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Customer Details"
+      width="max-w-2xl"
+    >
+      <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2">
+        {/* Profile Header */}
+        <div className="flex items-center gap-4 pb-5 border-b border-gray-100">
+          <div
+            className="w-20 h-20 rounded-full overflow-hidden relative flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            {user.profileImage ? (
+              <Image
+                src={user.profileImage}
+                alt={user.name || user.email}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            ) : (
+              <span className="text-white text-2xl font-bold">
+                {getInitials(user)}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <h2 className="text-xl font-bold text-gray-900">
+                {user.name || "Unnamed User"}
+              </h2>
+              <RoleBadge role={user.role} />
+              <StatusBadge isActive={user.isActive} />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Mail size={14} />
+              <span className="truncate">{user.email}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+            Contact Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                <Phone size={12} />
+                <span>Phone</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {user.phone || "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                <MapPin size={12} />
+                <span>Address</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {user.address || "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Account Info */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+            Account Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                <Calendar size={12} />
+                <span>Joined</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {formatDate(user.createdAt)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                <Activity size={12} />
+                <span>Last Updated</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
+                {formatDate(user.updatedAt)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 md:col-span-2">
+              <p className="text-xs text-gray-500 mb-1">User ID</p>
+              <p className="text-xs font-mono text-gray-700 break-all">
+                {user._id}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Future: Orders Section */}
+        <div className="border-t border-gray-100 pt-5">
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-700">
+            💡 Order history for this customer will be available once the orders
+            module is integrated.
+          </div>
         </div>
       </div>
-      <p className="text-sm text-gray-600 font-medium mb-2">{title}</p>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
-    </div>
+    </RmModal>
   );
 };
 
+// ─── Main Page ────────────────────────────────────────────────
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
 
-  const allCustomers: Customer[] = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@email.com",
-      phone: "+1 (234) 567-8901",
-      address: "New York, USA",
-      avatar: "JD",
-      orders: 12,
-      totalSpent: 3588,
-      joinedDate: "2025-01-15",
-      status: "active",
-      lastOrder: "2026-05-09",
-    },
-    {
-      id: "2",
-      name: "Sarah Smith",
-      email: "sarah@email.com",
-      phone: "+1 (234) 567-8902",
-      address: "Los Angeles, USA",
-      avatar: "SS",
-      orders: 8,
-      totalSpent: 1192,
-      joinedDate: "2025-02-20",
-      status: "active",
-      lastOrder: "2026-05-05",
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike@email.com",
-      phone: "+1 (234) 567-8903",
-      address: "Chicago, USA",
-      avatar: "MJ",
-      orders: 15,
-      totalSpent: 8985,
-      joinedDate: "2024-11-10",
-      status: "active",
-      lastOrder: "2026-05-08",
-    },
-    {
-      id: "4",
-      name: "Emily Brown",
-      email: "emily@email.com",
-      phone: "+1 (234) 567-8904",
-      address: "Houston, USA",
-      avatar: "EB",
-      orders: 5,
-      totalSpent: 495,
-      joinedDate: "2025-03-05",
-      status: "inactive",
-      lastOrder: "2026-04-15",
-    },
-    {
-      id: "5",
-      name: "David Wilson",
-      email: "david@email.com",
-      phone: "+1 (234) 567-8905",
-      address: "Phoenix, USA",
-      avatar: "DW",
-      orders: 20,
-      totalSpent: 5980,
-      joinedDate: "2024-09-12",
-      status: "active",
-      lastOrder: "2026-05-10",
-    },
-    {
-      id: "6",
-      name: "Lisa Anderson",
-      email: "lisa@email.com",
-      phone: "+1 (234) 567-8906",
-      address: "Miami, USA",
-      avatar: "LA",
-      orders: 3,
-      totalSpent: 447,
-      joinedDate: "2025-04-01",
-      status: "inactive",
-      lastOrder: "2026-04-20",
-    },
-    {
-      id: "7",
-      name: "Robert Taylor",
-      email: "robert@email.com",
-      phone: "+1 (234) 567-8907",
-      address: "Seattle, USA",
-      avatar: "RT",
-      orders: 25,
-      totalSpent: 12450,
-      joinedDate: "2024-08-15",
-      status: "active",
-      lastOrder: "2026-05-07",
-    },
-    {
-      id: "8",
-      name: "Jennifer Lee",
-      email: "jennifer@email.com",
-      phone: "+1 (234) 567-8908",
-      address: "Boston, USA",
-      avatar: "JL",
-      orders: 10,
-      totalSpent: 3250,
-      joinedDate: "2025-01-20",
-      status: "active",
-      lastOrder: "2026-05-06",
-    },
-  ];
+  // ─── API ─────────────────────────────────────────────────────
+  const { data: usersResponse, isLoading } = useGetUsersQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+    searchTerm: searchQuery || undefined,
+  });
 
-  // Filter customers based on search
-  const filteredCustomers = useMemo(() => {
-    return allCustomers.filter((customer) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.phone.includes(searchQuery);
-      return matchesSearch;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  const users: User[] = usersResponse?.data || [];
+  const meta = usersResponse?.meta || {
+    page: 1,
+    limit: 10,
+    total: users.length,
+    totalPage: 1,
+  };
 
-  // Reset to first page when search changes
-  useMemo(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-render
+  // Reset to page 1 on search change
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedCustomers = filteredCustomers.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
+  // ─── KPIs ────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const total = meta.total ?? users.length;
+    const customers = users.filter((u) => u.role === "user").length;
+    const admins = users.filter(
+      (u) => u.role === "admin" || u.role === "super_admin",
+    ).length;
+    const active = users.filter((u) => u.isActive).length;
 
-  const openCustomerModal = (customer: Customer) => {
-    setSelectedCustomer(customer);
+    // New this month — based on current page only (server should give actual)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newThisMonth = users.filter(
+      (u) => new Date(u.createdAt) >= startOfMonth,
+    ).length;
+
+    return { total, customers, admins, active, newThisMonth };
+  }, [users, meta.total]);
+
+  // ─── Handlers ───────────────────────────────────────────────
+  const openUserModal = (user: User) => {
+    setSelectedUser(user);
     setModalOpen(true);
   };
 
-  // KPI Data
-  const kpis = {
-    totalCustomers: allCustomers.length,
-    activeCustomers: allCustomers.filter((c) => c.status === "active").length,
-    newToday: 12,
-    newThisMonth: 45,
-  };
+  // ─── Table Columns ──────────────────────────────────────────
+  const columns = [
+    {
+      key: "user",
+      title: "User",
+      render: (user: User) => (
+        <div className="flex items-center gap-3 min-w-[220px]">
+          <div
+            className="w-10 h-10 rounded-full overflow-hidden relative flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            {user.profileImage ? (
+              <Image
+                src={user.profileImage}
+                alt={user.name || user.email}
+                fill
+                className="object-cover"
+                sizes="40px"
+              />
+            ) : (
+              <span className="text-white text-sm font-bold">
+                {getInitials(user)}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 line-clamp-1">
+              {user.name || "Unnamed"}
+            </p>
+            <p className="text-xs text-gray-500 line-clamp-1">{user.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "phone",
+      title: "Phone",
+      render: (user: User) => (
+        <span className="text-sm text-gray-700">{user.phone || "—"}</span>
+      ),
+    },
+    {
+      key: "address",
+      title: "Address",
+      render: (user: User) => (
+        <span className="text-sm text-gray-700 line-clamp-1">
+          {user.address || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "role",
+      title: "Role",
+      render: (user: User) => <RoleBadge role={user.role} />,
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (user: User) => <StatusBadge isActive={user.isActive} />,
+    },
+    {
+      key: "createdAt",
+      title: "Joined",
+      render: (user: User) => (
+        <span className="text-sm text-gray-700 whitespace-nowrap">
+          {formatDate(user.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      align: "right" as const,
+      render: (user: User) => (
+        <div className="flex justify-end">
+          <button
+            onClick={() => openUserModal(user)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer"
+          >
+            <Eye size={14} />
+            View
+          </button>
+        </div>
+      ),
+    },
+  ];
 
+  // ─── Render ─────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -457,88 +408,86 @@ export default function CustomersPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Customer Management
         </h1>
-        <p className="text-gray-600">View and manage your customer database</p>
+        <p className="text-gray-600">
+          View and manage all users in your database
+        </p>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
-          title="Total Customers"
-          value={kpis.totalCustomers.toString()}
+          title="Total Users"
+          value={kpis.total}
           icon={Users}
           color="#10b981"
         />
         <KPICard
-          title="Active Customers"
-          value={kpis.activeCustomers.toString()}
-          icon={Activity}
+          title="Customers"
+          value={kpis.customers}
+          icon={UserIcon}
           color="#3b82f6"
         />
         <KPICard
-          title="New Today"
-          value={kpis.newToday.toString()}
-          icon={UserPlus}
+          title="Admins"
+          value={kpis.admins}
+          icon={Shield}
           color="#a855f7"
         />
         <KPICard
           title="New This Month"
-          value={kpis.newThisMonth.toString()}
-          icon={Calendar}
+          value={kpis.newThisMonth}
+          icon={UserPlus}
           color="#f59e0b"
         />
       </div>
 
       {/* Search Bar */}
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
-          <input
-            type="text"
-            placeholder="Search customers by name, email or phone..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50 cursor-text"
-          />
-        </div>
+      <div className="relative">
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          type="text"
+          placeholder="Search by name, email, or phone..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50"
+        />
       </div>
 
-      {/* Customers Grid */}
-      {paginatedCustomers.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">No customers found</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedCustomers.map((customer) => (
-              <CustomerCard
-                key={customer.id}
-                customer={customer}
-                onClick={() => openCustomerModal(customer)}
-              />
-            ))}
-          </div>
+      {/* Users Table */}
+      <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+        <RmTable
+          columns={columns}
+          data={users}
+          loading={isLoading}
+          emptyText={
+            searchQuery
+              ? "No users match your search"
+              : "No users found in the system"
+          }
+        />
+      </div>
 
-          {/* Pagination */}
-          {filteredCustomers.length > itemsPerPage && (
-            <RmPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              showFirstLast
-            />
-          )}
-        </>
+      {/* Pagination */}
+      {meta.totalPage > 1 && (
+        <RmPagination
+          currentPage={currentPage}
+          totalPages={meta.totalPage}
+          onPageChange={setCurrentPage}
+          showFirstLast
+        />
       )}
 
-      {/* Customer Details Modal */}
-      <CustomerDetailsModal
+      {/* Details Modal */}
+      <UserDetailsModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        customer={selectedCustomer}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
       />
     </div>
   );

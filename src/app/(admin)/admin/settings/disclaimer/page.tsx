@@ -1,66 +1,109 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState } from "react";
-import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Loader2 } from "lucide-react";
 import { message } from "antd";
+import { Loader } from "@/components/shared/Loader";
+import RichEditor from "@/components/ui/RichEditor";
+import { useGetDisclaimerQuery } from "@/redux/api/settingsApi";
+import { useUpdateDisclaimerMutation } from "@/redux/api/adminApi";
 
 export default function DisclaimerPage() {
-  const [content, setContent] = useState(`# Disclaimer
+  const [description, setDescription] = useState<string>("");
 
-## General Information
-The information provided by Business Hub on this website is for general informational purposes only. All information on the site is provided in good faith, however we make no representation or warranty of any kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness of any information on the site.
+  const { data: disclaimerData, isLoading } = useGetDisclaimerQuery(undefined);
+  const [updateDisclaimer, { isLoading: isUpdating }] =
+    useUpdateDisclaimerMutation();
 
-## Professional Advice
-The site cannot and does not contain professional advice. The information is provided for general informational and educational purposes only and is not a substitute for professional advice.
+  const disclaimerContent: any = Array.isArray(disclaimerData?.data)
+    ? disclaimerData?.data?.[0]
+    : disclaimerData?.data;
 
-## External Links
-Our website may contain links to external websites that are not provided or maintained by or in any way affiliated with Business Hub. Please note that we do not guarantee the accuracy, relevance, timeliness, or completeness of any information on these external websites.
+  useEffect(() => {
+    if (disclaimerContent?.description) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDescription(disclaimerContent.description);
+    }
+  }, [disclaimerContent?.description]);
 
-## Limitation of Liability
-Under no circumstance shall Business Hub be liable for any loss or damage incurred as a result of the use of the site or reliance on any information provided on the site.
+  const handleSave = async () => {
+    if (
+      !description ||
+      description === "<p></p>" ||
+      description.trim() === ""
+    ) {
+      message.error("Disclaimer content cannot be empty");
+      return;
+    }
 
-## Product Disclaimer
-All products displayed on this website are for informational purposes. Actual products may vary in appearance, packaging, and specifications.
-
-## Medical Disclaimer
-The information provided on this site is not intended to diagnose, treat, cure, or prevent any disease. Always consult with a qualified healthcare professional before making any decisions about your health.
-
-## Testimonials
-Testimonials on this site are individual experiences and may not be representative of all users. Results may vary.
-
-## Contact Us
-If you have any questions about this disclaimer, please contact us at legal@businesshub.com`);
-
-  const handleSave = () => {
-    console.log("Disclaimer saved:", content);
-    message.success("Disclaimer saved successfully!");
+    try {
+      await updateDisclaimer({ description }).unwrap();
+      message.success("Disclaimer updated successfully!");
+    } catch (err: any) {
+      message.error(
+        err?.data?.message || err?.message || "Failed to update disclaimer",
+      );
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-100 p-12 flex justify-center">
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-100">
       <div className="p-6 border-b border-gray-100">
         <h2 className="text-xl font-semibold text-gray-900">Disclaimer</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Manage your disclaimer content
+          Manage your disclaimer content. This appears on the public Disclaimer
+          page.
         </p>
       </div>
 
       <div className="p-6">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50 resize-y min-h-[500px] font-mono"
-          placeholder="Enter disclaimer content here..."
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Disclaimer Content <span className="text-red-500">*</span>
+          </label>
 
-        <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
+          <RichEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Write your disclaimer content here..."
+            minHeight={400}
+          />
+
+          <p className="text-xs text-gray-400">
+            Use the toolbar to format text with headings, lists, alignment, and
+            more.
+          </p>
+        </div>
+
+        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
           <button
+            type="button"
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer"
+            disabled={isUpdating}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: "#C70A24" }}
           >
-            <Save size={16} />
-            Save Changes
+            {isUpdating ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Update Disclaimer
+              </>
+            )}
           </button>
         </div>
       </div>

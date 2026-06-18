@@ -1,40 +1,61 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState } from "react";
-import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Loader2 } from "lucide-react";
 import { message } from "antd";
+import { Loader } from "@/components/shared/Loader";
+import RichEditor from "@/components/ui/RichEditor";
+import { useGetAllTermsQuery } from "@/redux/api/settingsApi";
+import { useUpdateTermsMutation } from "@/redux/api/adminApi";
 
 export default function TermsConditionsPage() {
-  const [content, setContent] = useState(`# Terms & Conditions
+  const [description, setDescription] = useState<string>("");
 
-## 1. Acceptance of Terms
-By accessing and using this website, you accept and agree to be bound by the terms and conditions outlined here.
+  const { data: termsData, isLoading } = useGetAllTermsQuery(undefined);
+  const [updateTerms, { isLoading: isUpdating }] = useUpdateTermsMutation();
 
-## 2. Use of Services
-You agree to use our services only for lawful purposes and in accordance with these terms.
+  const termsContent: any = Array.isArray(termsData?.data)
+    ? termsData?.data?.[0]
+    : termsData?.data;
 
-## 3. Intellectual Property
-All content, trademarks, and data on this website are the property of Business Hub and are protected by copyright laws.
+  useEffect(() => {
+    if (termsContent?.description) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDescription(termsContent.description);
+    }
+  }, [termsContent?.description]);
 
-## 4. User Accounts
-You are responsible for maintaining the confidentiality of your account credentials.
+  const handleSave = async () => {
+    if (
+      !description ||
+      description === "<p></p>" ||
+      description.trim() === ""
+    ) {
+      message.error("Terms & Conditions content cannot be empty");
+      return;
+    }
 
-## 5. Privacy
-Your use of our services is also governed by our Privacy Policy.
-
-## 6. Limitations of Liability
-Business Hub shall not be liable for any indirect, incidental, or consequential damages.
-
-## 7. Changes to Terms
-We reserve the right to modify these terms at any time. Continued use of the site constitutes acceptance of updated terms.
-
-## 8. Contact Information
-For questions about these terms, please contact us at legal@businesshub.com`);
-
-  const handleSave = () => {
-    console.log("Terms & Conditions saved:", content);
-    message.success("Terms & Conditions saved successfully!");
+    try {
+      await updateTerms({ description }).unwrap();
+      message.success("Terms & Conditions updated successfully!");
+    } catch (err: any) {
+      message.error(
+        err?.data?.message ||
+          err?.message ||
+          "Failed to update Terms & Conditions",
+      );
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-100 p-12 flex justify-center">
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-100">
@@ -43,26 +64,49 @@ For questions about these terms, please contact us at legal@businesshub.com`);
           Terms & Conditions
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Manage your terms and conditions
+          Manage your terms and conditions. This appears on the public Terms
+          page.
         </p>
       </div>
 
       <div className="p-6">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50 resize-y min-h-[500px] font-mono"
-          placeholder="Enter terms and conditions content here..."
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Terms & Conditions Content <span className="text-red-500">*</span>
+          </label>
 
-        <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
+          <RichEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Write your terms and conditions here..."
+            minHeight={400}
+          />
+
+          <p className="text-xs text-gray-400">
+            Use the toolbar to format text with headings, lists, alignment, and
+            more.
+          </p>
+        </div>
+
+        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
           <button
+            type="button"
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer"
+            disabled={isUpdating}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: "#C70A24" }}
           >
-            <Save size={16} />
-            Save Changes
+            {isUpdating ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Update Terms & Conditions
+              </>
+            )}
           </button>
         </div>
       </div>

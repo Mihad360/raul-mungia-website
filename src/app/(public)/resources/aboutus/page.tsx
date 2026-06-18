@@ -1,7 +1,25 @@
 /* eslint-disable react/no-unescaped-entities */
+"use client";
+
 import Link from "next/link";
+import { Loader } from "@/components/shared/Loader";
+import { useGetAllAboutQuery } from "@/redux/api/settingsApi";
+
+interface IAbout {
+  _id: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const AboutPage = () => {
+  const {
+    data: aboutData,
+    isLoading,
+    isError,
+  } = useGetAllAboutQuery(undefined);
+  const about: IAbout | undefined = aboutData?.data;
+
   const whyChooseUs = [
     {
       number: "01",
@@ -33,107 +51,59 @@ const AboutPage = () => {
         </p>
       </section>
 
-      {/* Main content - 2 col */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left — text content */}
-          <div>
+      {/* Main content — centered single column with admin-managed HTML */}
+      <section className="max-w-4xl mx-auto px-6 py-12">
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Loader size="lg" />
+          </div>
+        ) : isError || !about?.description ? (
+          <div className="text-center space-y-4 py-20">
             <h2
-              className="text-3xl font-bold text-gray-900 mb-2"
+              className="text-3xl font-bold text-gray-900"
               style={{ fontFamily: "Georgia, serif" }}
             >
-              Precision Purity
+              About Us
             </h2>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-              Scientific Integrity
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed mb-6">
-              In a market full of shortcuts and questionable claims, we deliver
-              premium-grade research peptides of the highest purity, no hidden
-              fees just verified purity, transparent testing, and a guarantee
-              that backs every order. Because real science demands real
-              standards.
+            <p className="text-sm text-gray-500">
+              Content is being updated. Please check back soon.
             </p>
-
-            {/* Checklist */}
-            <div className="space-y-3 mb-7">
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: "#C70A24" }}
-                >
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    99% Tested Purity
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    We ensure a minimum of 99% purity on all of our peptides, or
-                    your money back.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: "#C70A24" }}
-                >
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Complete Transparency
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    We don't just claim quality we verify it. It's one standard
-                    we follow.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: "#C70A24" }}
-                >
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Expert Support
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Our team is available to answer your questions anytime.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA button */}
-            <button
-              className="px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-opacity hover:opacity-90 active:opacity-80 cursor-pointer"
-              style={{ backgroundColor: "#C70A24" }}
-            >
-              Contact With Expert →
-            </button>
           </div>
-
-          {/* Right — image placeholder */}
-          <div className="rounded-2xl overflow-hidden h-80 bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
+        ) : (
+          <>
+            {/* Admin-managed HTML — left-aligned for readability inside centered container */}
             <div
-              className="w-48 h-48 rounded-full opacity-60"
-              style={{
-                background:
-                  "radial-gradient(circle, rgba(100,150,200,0.3) 0%, transparent 70%)",
-              }}
+              className="space-y-4 text-gray-600 leading-relaxed
+                [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mt-6 [&_h1]:mb-3
+                [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-3
+                [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-900 [&_h3]:mt-5 [&_h3]:mb-2
+                [&_h4]:text-lg [&_h4]:font-semibold [&_h4]:text-gray-900 [&_h4]:mt-4 [&_h4]:mb-2
+                [&_p]:text-base [&_p]:leading-relaxed [&_p]:text-gray-600 [&_p]:my-3
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ul]:my-4 [&_ul]:text-base
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_ol]:my-4 [&_ol]:text-base
+                [&_li]:text-gray-600 [&_li]:leading-relaxed
+                [&_a]:text-[#C70A24] [&_a]:underline hover:[&_a]:opacity-80
+                [&_strong]:font-semibold [&_strong]:text-gray-900
+                [&_em]:italic
+                [&_blockquote]:border-l-4 [&_blockquote]:border-[#C70A24] [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-500 [&_blockquote]:my-4
+                [&_img]:rounded-lg [&_img]:my-4 [&_img]:mx-auto"
+              dangerouslySetInnerHTML={{ __html: about.description }}
             />
-          </div>
-        </div>
+
+            {/* CTA button — centered below content */}
+            <div className="flex justify-center mt-10">
+              <button
+                className="px-6 py-3 rounded-lg text-white text-sm font-semibold transition-opacity hover:opacity-90 active:opacity-80 cursor-pointer"
+                style={{ backgroundColor: "#C70A24" }}
+              >
+                Contact With Expert →
+              </button>
+            </div>
+          </>
+        )}
       </section>
 
-      {/* Quality section - same as home but here for About */}
+      {/* Quality section (static) */}
       <section className="w-full py-16" style={{ backgroundColor: "#f5f5f5" }}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -183,7 +153,7 @@ const AboutPage = () => {
               </div>
             </div>
 
-            {/* Center — product image */}
+            {/* Center product image */}
             <div className="flex items-center justify-center">
               <div
                 className="w-56 h-72 rounded-3xl flex items-end justify-center overflow-hidden"
@@ -236,7 +206,7 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Why choose us - 3 col */}
+      {/* Why choose us (static) */}
       <section className="w-full bg-white py-14">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">

@@ -8,6 +8,7 @@ import {
   Percent,
   Settings,
   LogOut,
+  ChartBarIcon,
 } from "lucide-react";
 
 export const SIDEBAR_MENU_ITEMS = [
@@ -25,6 +26,11 @@ export const SIDEBAR_MENU_ITEMS = [
     label: "Customers",
     href: "/admin/customers",
     icon: Users,
+  },
+  {
+    label: "Categories",
+    href: "/admin/categories",
+    icon: ChartBarIcon,
   },
   {
     label: "Products",

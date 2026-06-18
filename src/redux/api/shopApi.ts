@@ -3,11 +3,10 @@ import { baseApi } from "./baseApi";
 const shopApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     // ─── PRODUCTS ─────────────────────────────────────────────
-    /** Get all products (with optional filters: search, category, price range, etc.) */
+    /** Get all products with filters */
     getAllProducts: build.query({
       query: (args) => {
         const params = new URLSearchParams();
-
         if (args && typeof args === "object") {
           Object.entries(args).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== "") {
@@ -15,28 +14,23 @@ const shopApi = baseApi.injectEndpoints({
             }
           });
         }
-
         return {
           url: "/product/",
           method: "GET",
           params,
         };
       },
-
-      transformResponse: (response) => {
-        return {
-          data: response.data,
-          meta: response.meta,
-        };
-      },
-
+      transformResponse: (response) => ({
+        data: response.data,
+        meta: response.meta,
+      }),
       providesTags: ["product"],
     }),
 
     /** Get single product by ID */
     getProductById: build.query({
       query: (id: string) => ({
-        url: `/product/${id}`, // ✅ Matches GET /product/:id
+        url: `/product/${id}`,
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "product", id }],
@@ -45,7 +39,7 @@ const shopApi = baseApi.injectEndpoints({
     /** Get products by category */
     getProductsByCategory: build.query({
       query: (categoryId: string) => ({
-        url: `/product/category/${categoryId}`, // ✅ Matches GET /product/category/:categoryId
+        url: `/product/category/${categoryId}`,
         method: "GET",
       }),
       providesTags: (_result, _error, categoryId) => [
@@ -53,10 +47,10 @@ const shopApi = baseApi.injectEndpoints({
       ],
     }),
 
-    /** Get related products for a given product */
+    /** Get related products */
     getRelatedProducts: build.query({
       query: (productId: string) => ({
-        url: `/product/${productId}/related`, // ✅ Matches GET /product/:id/related
+        url: `/product/${productId}/related`,
         method: "GET",
       }),
       providesTags: (_result, _error, productId) => [
@@ -64,33 +58,13 @@ const shopApi = baseApi.injectEndpoints({
       ],
     }),
 
-    /** Get featured / best-selling products (homepage) */
+    /** Get featured / best-selling products */
     getFeaturedProducts: build.query({
       query: () => ({
-        url: "/products/featured", // ⚠️ You'll need to add this route to your backend
+        url: "/products/featured",
         method: "GET",
       }),
       providesTags: ["product"],
-    }),
-
-    // ─── CATEGORIES ────────────────────────────────────────────
-
-    /** Get all categories */
-    getAllCategories: build.query({
-      query: () => ({
-        url: "/categories", // ⚠️ You'll need to add this route to your backend
-        method: "GET",
-      }),
-      providesTags: ["category"],
-    }),
-
-    /** Get single category by ID */
-    getCategoryById: build.query({
-      query: (id: string) => ({
-        url: `/categories/${id}`, // ⚠️ You'll need to add this route to your backend
-        method: "GET",
-      }),
-      providesTags: (_result, _error, id) => [{ type: "category", id }],
     }),
   }),
 });
@@ -101,6 +75,4 @@ export const {
   useGetProductsByCategoryQuery,
   useGetRelatedProductsQuery,
   useGetFeaturedProductsQuery,
-  useGetAllCategoriesQuery,
-  useGetCategoryByIdQuery,
 } = shopApi;

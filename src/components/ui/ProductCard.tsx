@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type TProductCardProps = {
-  id: number;
+  id: number | string;
   name: string;
   variant: string;
   price: string;
