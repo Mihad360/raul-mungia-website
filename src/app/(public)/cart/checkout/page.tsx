@@ -27,6 +27,8 @@ import { useGetCartSummaryQuery } from "@/redux/api/cartApi";
 import { useGetShippingRatesMutation } from "@/redux/api/shippingApi";
 import { useGetActivePaymentMethodsQuery } from "@/redux/api/paymentMethodApi";
 import { couponStorage } from "@/utils/couponStorage";
+import { usePlaceOrderMutation } from "@/redux/api/orderApi";
+import { useGetMyProfileQuery } from "@/redux/api/authApi";
 
 /* ─── Types matching backend response ────────────────────── */
 
@@ -176,6 +178,11 @@ const CheckoutPage = () => {
 
   const summary = summaryData?.data;
   const paymentMethods: IPaymentMethod[] = paymentMethodsData?.data || [];
+  // ─── User profile (for fullName + email in order) ─────────────
+  const { data: profileData } = useGetMyProfileQuery(undefined);
+  const user = profileData?.data;
+
+  const [placeOrder, { isLoading: isPlacing }] = usePlaceOrderMutation();
 
   // Sort payment methods by displayOrder
   const sortedPaymentMethods = useMemo(
@@ -272,7 +279,7 @@ const CheckoutPage = () => {
   );
 
   // ─── Place order (stubbed for now) ────────────────────────
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!isAddressComplete()) {
       toast.error("Please complete your shipping address");
       return;
@@ -295,20 +302,45 @@ const CheckoutPage = () => {
       toast.error("Please agree to the terms and conditions");
       return;
     }
+    if (!user?.name || !user?.email) {
+      toast.error("Unable to load your profile. Please refresh and try again.");
+      return;
+    }
 
-    // TODO: integrate orderApi.placeOrder mutation
-    // On success: couponStorage.remove(); router.push(`/cart/order-success?orderId=${id}`);
-    toast.success(
-      "Form is complete! Order placement API will be wired in next step.",
-    );
-    console.log("Order payload preview:", {
-      shippingAddress: address,
-      shippingMethod: selectedShipping.serviceType,
-      shippingCost: selectedShipping.customerPays,
-      paymentMethodId: selectedPaymentMethod._id,
-      couponCode: appliedCouponCode || undefined,
-      customerNote: orderNote || undefined,
-    });
+    try {
+      const payload = {
+        shippingAddress: {
+          fullName: user.name,
+          email: user.email,
+          phone: user.phone,
+          street: address.street,
+          apartment: address.apartment,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+        },
+        shippingMethod: selectedShipping.serviceType,
+        paymentMethodId: selectedPaymentMethod._id,
+        couponCode: appliedCouponCode || undefined,
+        customerNote: orderNote || undefined,
+      };
+
+      const response = await placeOrder(payload).unwrap();
+      const orderId = response?.data?._id;
+
+      // Clear coupon since order is placed
+      couponStorage.remove();
+
+      toast.success("Order placed successfully!");
+      router.push(`/orders`);
+
+      // Redirect to success page
+      // router.push(`/order-success?orderId=${orderId}`);
+    } catch (err) {
+      const error = err as { data?: { message?: string } };
+      toast.error(error?.data?.message || "Failed to place order");
+    }
   };
 
   // ─── Empty cart redirect ──────────────────────────────────
@@ -428,6 +460,7 @@ const CheckoutPage = () => {
               termsAgreed={termsAgreed}
               setTermsAgreed={setTermsAgreed}
               onPlaceOrder={handlePlaceOrder}
+              isPlacing={isPlacing}
             />
           </div>
         </div>
@@ -920,6 +953,7 @@ const OrderSummary = ({
   termsAgreed,
   setTermsAgreed,
   onPlaceOrder,
+  isPlacing,
 }: {
   summary: any;
   selectedShipping: IShippingOption | null;
@@ -933,6 +967,7 @@ const OrderSummary = ({
   termsAgreed: boolean;
   setTermsAgreed: (v: boolean) => void;
   onPlaceOrder: () => void;
+  isPlacing: boolean;
 }) => {
   const [itemsExpanded, setItemsExpanded] = useState(false);
 
@@ -1131,11 +1166,18 @@ const OrderSummary = ({
       {/* Place Order */}
       <button
         onClick={onPlaceOrder}
-        disabled={summaryFetching}
-        className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
+        disabled={summaryFetching || isPlacing}
+        className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
         style={{ backgroundColor: "#C70A24" }}
       >
-        Place Order
+        {isPlacing ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Placing Order...
+          </>
+        ) : (
+          "Place Order"
+        )}
       </button>
 
       <p className="text-xs text-gray-400 text-center mt-3">

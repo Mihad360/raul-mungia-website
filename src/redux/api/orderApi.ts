@@ -12,16 +12,18 @@ const orderApi = baseApi.injectEndpoints({
     }),
 
     getMyOrders: build.query({
-      query: (args) => {
+      query: (args: Record<string, unknown> = {}) => {
         const params = new URLSearchParams();
-        if (args) {
-          Object.entries(args).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") {
-              params.append(key, String(value));
-            }
-          });
-        }
-        return { url: "/order/my-orders", method: "GET", params };
+        Object.entries(args).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== "") {
+            params.append(key, String(value));
+          }
+        });
+        return {
+          url: "/order/my-orders",
+          method: "GET",
+          params,
+        };
       },
       providesTags: ["order"],
     }),

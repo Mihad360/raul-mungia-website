@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   FlaskConical,
@@ -8,6 +8,8 @@ import {
   Truck,
   FileText,
 } from "lucide-react";
+import Image from "next/image";
+import qualityImage from "../../../assets/quality.png";
 
 const features = [
   {
@@ -76,18 +78,12 @@ const QualitySection = () => {
 
           {/* Center — product image */}
           <div className="flex items-center justify-center">
-            <div
-              className="w-56 h-72 rounded-3xl flex items-end justify-center overflow-hidden"
-              style={{ backgroundColor: "#f9c2c8" }}
-            >
-              {/* Placeholder bottle — replace with <Image> */}
-              <div
-                className="w-28 h-56 rounded-t-xl shadow-2xl mb-0"
-                style={{
-                  background:
-                    "linear-gradient(180deg, #1f2937 0%, #111827 100%)",
-                  borderTop: "7px solid #C70A24",
-                }}
+            <div className="relative w-56 h-72 rounded-3xl overflow-hidden">
+              <Image
+                src={qualityImage}
+                alt="Research Peptides Product"
+                fill
+                className="object-cover"
               />
             </div>
           </div>

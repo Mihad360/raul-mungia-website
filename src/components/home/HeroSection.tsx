@@ -1,6 +1,8 @@
-"use client"
+"use client";
 import Link from "next/link";
 import Image from "next/image";
+import banner from "../../../assets/banner.png";
+import banner1 from "../../../assets/medicine-banner.png";
 
 const HeroSection = () => {
   return (
@@ -38,36 +40,33 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Hero image */}
+        {/* Hero image with product overlay */}
         <div
           className="relative w-full rounded-2xl overflow-hidden"
-          style={{ height: "420px" }}
+          style={{ height: "500px" }}
         >
-          {/* Placeholder image — replace with actual product banner */}
-          <div className="absolute inset-0 bg-gradient-to-br from-red-950 via-red-800 to-red-900 flex items-end justify-center">
-            {/* Decorative red splash overlay */}
-            <div
-              className="absolute inset-0 opacity-60"
-              style={{
-                background:
-                  "radial-gradient(ellipse at 30% 50%, rgba(180,10,30,0.6) 0%, transparent 70%), radial-gradient(ellipse at 70% 40%, rgba(120,0,20,0.5) 0%, transparent 60%)",
-              }}
-            />
-            {/* Placeholder product bottles — replace with <Image> once assets are ready */}
-            <div className="relative z-10 flex items-end justify-center gap-3 pb-0">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`bg-gradient-to-b from-gray-300 to-gray-500 rounded-t-full border-2 border-gray-400 shadow-2xl ${
-                    i === 2 ? "w-28 h-56" : "w-24 h-44"
-                  }`}
-                  style={{
-                    background:
-                      "linear-gradient(180deg, #9ca3af 0%, #6b7280 30%, #374151 100%)",
-                    borderTop: "8px solid #C70A24",
-                  }}
-                />
-              ))}
+          {/* Background Banner */}
+          <Image
+            src={banner}
+            alt="Premium Research Peptides Banner"
+            fill
+            className="object-cover"
+            priority
+          />
+
+          {/* Dark overlay for better product visibility */}
+          <div className="absolute inset-0 bg-black/20" />
+
+          {/* Product Image Overlay - centered */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-full h-full">
+              <Image
+                src={banner1}
+                alt="Research Peptides Product"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
           </div>
         </div>

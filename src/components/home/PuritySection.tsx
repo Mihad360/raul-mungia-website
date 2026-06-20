@@ -1,6 +1,8 @@
-"use client"
+"use client";
 import Image from "next/image";
 import Link from "next/link";
+import purity1 from "../../../assets/Purity1.png";
+import purity2 from "../../../assets/purity2.png";
 
 const PuritySection = () => {
   return (
@@ -34,15 +36,12 @@ const PuritySection = () => {
           {/* Right — image + stats grid */}
           <div className="flex flex-col gap-3">
             {/* Product image box */}
-            <div className="rounded-xl overflow-hidden bg-gray-900 h-44 flex items-center justify-center">
-              {/* Placeholder — replace with <Image> */}
-              <div
-                className="w-20 h-36 rounded-t-lg shadow-xl"
-                style={{
-                  background:
-                    "linear-gradient(180deg, #9ca3af 0%, #6b7280 30%, #374151 100%)",
-                  borderTop: "6px solid #C70A24",
-                }}
+            <div className="relative rounded-xl overflow-hidden bg-gray-900 h-44">
+              <Image
+                src={purity1}
+                alt="Purity Guarantee Product"
+                fill
+                className="object-cover"
               />
             </div>
 
@@ -55,13 +54,12 @@ const PuritySection = () => {
               </div>
 
               {/* Middle — image */}
-              <div className="rounded-xl overflow-hidden bg-red-100 h-24 flex items-center justify-center">
-                <div
-                  className="w-full h-full"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at center, rgba(199,10,36,0.3) 0%, rgba(199,10,36,0.1) 100%)",
-                  }}
+              <div className="relative rounded-xl overflow-hidden h-24">
+                <Image
+                  src={purity2}
+                  alt="Purity Certificate"
+                  fill
+                  className="object-cover"
                 />
               </div>
 
