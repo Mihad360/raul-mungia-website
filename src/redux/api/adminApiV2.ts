@@ -148,6 +148,14 @@ const adminApiV2 = baseApi.injectEndpoints({
       }),
       providesTags: ["transaction"],
     }),
+    markOrderReadyForPickup: build.mutation({
+      query: (id: string) => ({
+        url: `/admin/order/${id}/mark-ready-for-pickup`,
+        method: "PATCH",
+        data: {},
+      }),
+      invalidatesTags: ["order"],
+    }),
   }),
 });
 
@@ -166,4 +174,5 @@ export const {
   // Transactions
   useGetAllTransactionsAdminQuery,
   useGetSingleTransactionAdminQuery,
+  useMarkOrderReadyForPickupMutation,
 } = adminApiV2;

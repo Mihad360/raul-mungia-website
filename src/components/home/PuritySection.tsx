@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import purity1 from "../../../assets/Purity1.png";
+import purity1 from "../../../assets/purity1.png";
 import purity2 from "../../../assets/purity2.png";
 
 const PuritySection = () => {

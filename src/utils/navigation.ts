@@ -7,6 +7,7 @@ export const NAVIGATION_ITEMS = [
 export const RESOURCES_ITEMS = [
   { name: "About us", path: "/resources/aboutus" },
   { name: "Certifications", path: "/resources/certifications" },
+  { name: "Shipping Policies", path: "/resources/shipping-policy" },
   { name: "FAQ", path: "/resources/faq" },
   { name: "Blog", path: "/resources/blog" },
 ] as const;

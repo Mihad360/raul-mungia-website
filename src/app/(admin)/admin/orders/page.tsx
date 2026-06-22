@@ -22,6 +22,7 @@ import {
   AlertCircle,
   Search,
   Loader2,
+  Home,
 } from "lucide-react";
 import { message, Modal } from "antd";
 import RmTable from "@/components/ui/RmTable";
@@ -38,6 +39,7 @@ import {
   useRefreshTrackingInfoMutation,
   useMarkOrderAsDeliveredMutation,
   useUpdateOrderAdminNoteMutation,
+  useMarkOrderReadyForPickupMutation,
 } from "@/redux/api/adminApiV2";
 import {
   OrderStatusBadge,
@@ -45,6 +47,7 @@ import {
   formatDate,
   formatDateShort,
   OrderStatus,
+  FulfillmentBadge,
 } from "@/utils/orderHelpers";
 
 // ═══════════════ TYPES ═══════════════
@@ -119,6 +122,8 @@ type AdminOrder = {
   paidAt?: string;
   shippedAt?: string;
   deliveredAt?: string;
+  fulfillmentType: "pickup" | "shipping"; // NEW
+  pickupReadyAt?: string; // NEW
 };
 
 const STATUS_TABS: { value: string; label: string }[] = [
@@ -126,6 +131,7 @@ const STATUS_TABS: { value: string; label: string }[] = [
   { value: "awaiting_payment", label: "Awaiting Payment" },
   { value: "paid", label: "Paid" },
   { value: "processing", label: "Processing" },
+  { value: "ready_for_pickup", label: "Ready for Pickup" }, // NEW
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
@@ -140,11 +146,13 @@ export default function AdminOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<string>("");
 
   const { data: ordersResponse, isLoading } = useGetAllOrdersAdminQuery({
     page: currentPage,
     limit: 10,
     status: statusFilter || undefined,
+    fulfillmentType: fulfillmentFilter || undefined, // NEW
     searchTerm: searchQuery || undefined,
   });
 
@@ -168,9 +176,12 @@ export default function AdminOrdersPage() {
       title: "Order",
       render: (record: AdminOrder) => (
         <div>
-          <p className="font-mono font-semibold text-gray-900 text-sm">
-            {record.orderNumber}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="font-mono font-semibold text-gray-900 text-sm">
+              {record.orderNumber}
+            </p>
+            <FulfillmentBadge type={record.fulfillmentType} />
+          </div>
           <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
             <Calendar size={10} />
             {formatDateShort(record.createdAt)}
@@ -330,6 +341,32 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 font-semibold uppercase">
+          Type:
+        </span>
+        {[
+          { value: "", label: "All" },
+          { value: "shipping", label: "📦 Shipping" },
+          { value: "pickup", label: "🏠 Pickup" },
+        ].map((opt) => (
+          <button
+            key={opt.value || "all"}
+            onClick={() => {
+              setFulfillmentFilter(opt.value);
+              setCurrentPage(1);
+            }}
+            className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
+              fulfillmentFilter === opt.value
+                ? "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Status Tabs */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto pb-0">
         {STATUS_TABS.map((tab) => (
@@ -444,20 +481,42 @@ const OrderDetailsModal = ({
     useRefreshTrackingInfoMutation();
   const [markDelivered, { isLoading: delivering }] =
     useMarkOrderAsDeliveredMutation();
+  const [markReadyForPickup, { isLoading: markingReady }] =
+    useMarkOrderReadyForPickupMutation();
 
   if (!order) return null;
+
+  const isPickup = order.fulfillmentType === "pickup";
+  const isShipping = order.fulfillmentType === "shipping";
 
   const canConfirmPayment =
     order.paymentStatus === "awaiting_confirmation" ||
     (order.paymentStatus === "unpaid" && !order.paymentMethod?.isAutomated);
 
-  const canShip =
-    ["paid", "processing"].includes(order.status) && !order.trackingNumber;
+  // Pickup-only actions
+  const canMarkReadyForPickup =
+    isPickup &&
+    order.paymentStatus === "paid" &&
+    ["paid", "processing"].includes(order.status as string);
+
+  const canMarkPickedUp = isPickup && order.status === "ready_for_pickup";
+
+  // Shipping-only actions
+  const canGenerateLabel =
+    isShipping &&
+    ["paid", "processing"].includes(order.status) &&
+    !order.trackingNumber;
+
+  const canMarkShipped =
+    isShipping &&
+    ["paid", "processing"].includes(order.status) &&
+    !order.trackingNumber;
 
   const canRefreshTracking =
-    !!order.trackingNumber && order.status === "shipped";
+    isShipping && !!order.trackingNumber && order.status === "shipped";
 
-  const canMarkDelivered = order.status === "shipped";
+  const canMarkDelivered =
+    (isShipping && order.status === "shipped") || canMarkPickedUp;
 
   const canCancel = !["delivered", "cancelled", "refunded"].includes(
     order.status,
@@ -531,6 +590,24 @@ const OrderDetailsModal = ({
     });
   };
 
+  const handleMarkReadyForPickup = () => {
+    Modal.confirm({
+      title: "Mark Order as Ready for Pickup?",
+      content: `Notify the customer that order ${order.orderNumber} is ready to be collected at your location.`,
+      okText: "Mark Ready",
+      cancelText: "Cancel",
+      okButtonProps: { style: { backgroundColor: "#C70A24" } },
+      onOk: async () => {
+        try {
+          await markReadyForPickup(order._id).unwrap();
+          message.success("Customer notified — order is ready for pickup!");
+        } catch (err: any) {
+          message.error(err?.data?.message || "Failed to mark as ready");
+        }
+      },
+    });
+  };
+
   return (
     <>
       <RmModal
@@ -540,7 +617,6 @@ const OrderDetailsModal = ({
         width="max-w-4xl"
         footer={
           <div className="flex flex-wrap gap-2">
-            {/* Status-dependent action buttons */}
             {canConfirmPayment && (
               <ActionBtn
                 onClick={handleConfirmPayment}
@@ -551,24 +627,26 @@ const OrderDetailsModal = ({
               />
             )}
 
-            {canShip && (
-              <>
-                <ActionBtn
-                  onClick={handleGenerateLabel}
-                  disabled={generatingLabel}
-                  color="primary"
-                  icon={FileText}
-                  label={
-                    generatingLabel ? "Generating..." : "Generate FedEx Label"
-                  }
-                />
-                <ActionBtn
-                  onClick={() => setShipOpen(true)}
-                  color="purple"
-                  icon={Truck}
-                  label="Mark Shipped (Manual)"
-                />
-              </>
+            {/* SHIPPING-specific actions */}
+            {canGenerateLabel && (
+              <ActionBtn
+                onClick={handleGenerateLabel}
+                disabled={generatingLabel}
+                color="primary"
+                icon={FileText}
+                label={
+                  generatingLabel ? "Generating..." : "Generate FedEx Label"
+                }
+              />
+            )}
+
+            {canMarkShipped && (
+              <ActionBtn
+                onClick={() => setShipOpen(true)}
+                color="purple"
+                icon={Truck}
+                label="Mark Shipped (Manual)"
+              />
             )}
 
             {canRefreshTracking && (
@@ -581,13 +659,31 @@ const OrderDetailsModal = ({
               />
             )}
 
+            {/* PICKUP-specific actions */}
+            {canMarkReadyForPickup && (
+              <ActionBtn
+                onClick={handleMarkReadyForPickup}
+                disabled={markingReady}
+                color="primary"
+                icon={Home}
+                label={markingReady ? "Updating..." : "Mark Ready for Pickup"}
+              />
+            )}
+
+            {/* Common — works for both */}
             {canMarkDelivered && (
               <ActionBtn
                 onClick={handleMarkDelivered}
                 disabled={delivering}
                 color="green"
                 icon={CheckCircle2}
-                label={delivering ? "Updating..." : "Mark Delivered"}
+                label={
+                  delivering
+                    ? "Updating..."
+                    : isPickup
+                      ? "Mark Picked Up"
+                      : "Mark Delivered"
+                }
               />
             )}
 
@@ -623,6 +719,7 @@ const OrderDetailsModal = ({
           <div className="flex items-center gap-2 flex-wrap">
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.paymentStatus as any} />
+            <FulfillmentBadge type={order.fulfillmentType} />
             <span className="text-xs text-gray-500 ml-auto">
               Created {formatDate(order.createdAt)}
             </span>
@@ -765,20 +862,33 @@ const OrderDetailsModal = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Shipping address */}
-            <Section title="Shipping Address" icon={<MapPin size={16} />}>
+            <Section
+              title={isPickup ? "Customer Contact" : "Shipping Address"}
+              icon={isPickup ? <User size={16} /> : <MapPin size={16} />}
+            >
               <div className="text-sm text-gray-700 space-y-0.5">
                 <p className="font-semibold text-gray-900">
                   {order.shippingAddress?.fullName}
                 </p>
-                <p>{order.shippingAddress?.street}</p>
-                {order.shippingAddress?.apartment && (
-                  <p>{order.shippingAddress.apartment}</p>
+                {!isPickup && (
+                  <>
+                    <p>{order.shippingAddress?.street}</p>
+                    {order.shippingAddress?.apartment && (
+                      <p>{order.shippingAddress.apartment}</p>
+                    )}
+                    <p>
+                      {order.shippingAddress?.city},{" "}
+                      {order.shippingAddress?.state}{" "}
+                      {order.shippingAddress?.postalCode}
+                    </p>
+                    <p>{order.shippingAddress?.country}</p>
+                  </>
                 )}
-                <p>
-                  {order.shippingAddress?.city}, {order.shippingAddress?.state}{" "}
-                  {order.shippingAddress?.postalCode}
-                </p>
-                <p>{order.shippingAddress?.country}</p>
+                {isPickup && (
+                  <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 inline-block mt-1">
+                    🏠 Local Pickup
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 pt-1">
                   {order.shippingAddress?.email}
                 </p>
@@ -815,7 +925,7 @@ const OrderDetailsModal = ({
           </div>
 
           {/* Tracking */}
-          {order.trackingNumber && (
+          {!isPickup && order.trackingNumber && (
             <Section title="Shipping & Tracking" icon={<Truck size={16} />}>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
@@ -878,8 +988,20 @@ const OrderDetailsModal = ({
             <div className="text-xs text-gray-600 space-y-1">
               <TimeRow label="Placed" date={order.createdAt} />
               <TimeRow label="Paid" date={order.paidAt} />
-              <TimeRow label="Shipped" date={order.shippedAt} />
-              <TimeRow label="Delivered" date={order.deliveredAt} />
+              {isPickup ? (
+                <>
+                  <TimeRow
+                    label="Ready for Pickup"
+                    date={order.pickupReadyAt}
+                  />
+                  <TimeRow label="Picked Up" date={order.deliveredAt} />
+                </>
+              ) : (
+                <>
+                  <TimeRow label="Shipped" date={order.shippedAt} />
+                  <TimeRow label="Delivered" date={order.deliveredAt} />
+                </>
+              )}
             </div>
           </Section>
         </div>

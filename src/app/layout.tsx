@@ -33,8 +33,8 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font" suppressHydrationWarning>
         <ReduxProvider>
-          {children}
           <Toaster position="top-right" richColors />
+          {children}
         </ReduxProvider>
       </body>
     </html>

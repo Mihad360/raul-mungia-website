@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import banner from "../../../assets/banner.png";
-import banner1 from "../../../assets/medicine-banner.png";
+import banner from "../../../assets/banner1.png";
+import banner1 from "../../../assets/banner2.png";
 
 const HeroSection = () => {
   return (
@@ -32,7 +32,7 @@ const HeroSection = () => {
               Shop Now
             </Link>
             <Link
-              href="/certification"
+              href="/resources/certifications"
               className="px-7 py-3 rounded-lg border border-gray-300 text-gray-800 font-semibold text-sm hover:border-gray-400 transition-colors"
             >
               View Certification

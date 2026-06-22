@@ -1,9 +1,12 @@
 "use client";
 
 import AuthCard from "@/components/auth/AuthCard";
+import { Loader } from "@/components/shared/Loader";
+import { useSignUpUserMutation } from "@/redux/api/authApi";
 import Link from "next/link";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type TRegisterForm = {
   name: string;
@@ -12,7 +15,8 @@ type TRegisterForm = {
 };
 
 const RegisterPage = () => {
-  // const router = useRouter();
+  const router = useRouter();
+  const [registerUser, { isLoading }] = useSignUpUserMutation();
 
   const {
     register,
@@ -21,9 +25,28 @@ const RegisterPage = () => {
   } = useForm<TRegisterForm>();
 
   const onSubmit = async (data: TRegisterForm) => {
-    console.log("Register data:", data);
-    // TODO: dispatch register action / call API
-    // router.push("/login");
+    try {
+      const response = await registerUser(data).unwrap();
+
+      if (response?.success) {
+        // Save email + flow type for the verify-otp page
+        localStorage.setItem("pendingEmail", data.email);
+        localStorage.setItem("verifyFlow", "register");
+
+        toast.success(
+          response?.message ||
+            "Account created! Please check your email for the verification code.",
+        );
+        router.push("/verify-otp");
+      } else {
+        toast.error(response?.message || "Failed to create account");
+      }
+    } catch (error: unknown) {
+      const message =
+        (error as { data?: { message?: string } })?.data?.message ||
+        "Failed to create account. Please try again.";
+      toast.error(message);
+    }
   };
 
   return (
@@ -41,7 +64,8 @@ const RegisterPage = () => {
             })}
             type="text"
             placeholder="Enter Your Name"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {errors.name && (
             <p className="text-xs text-[#C70A24] mt-1">{errors.name.message}</p>
@@ -60,7 +84,8 @@ const RegisterPage = () => {
             })}
             type="email"
             placeholder="Enter Your Email"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {errors.email && (
             <p className="text-xs text-[#C70A24] mt-1">
@@ -81,7 +106,8 @@ const RegisterPage = () => {
             })}
             type="password"
             placeholder="Enter Your Password"
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition placeholder-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {errors.password && (
             <p className="text-xs text-[#C70A24] mt-1">
@@ -93,13 +119,20 @@ const RegisterPage = () => {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1"
+          disabled={isLoading}
+          className="w-full py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90 active:opacity-80 mt-1 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={{ backgroundColor: "#C70A24" }}
         >
-          Sign Up
+          {isLoading ? (
+            <>
+              <Loader size="sm" color="#ffffff" />
+              Creating account...
+            </>
+          ) : (
+            "Sign Up"
+          )}
         </button>
 
-        {/* Login link */}
         <p className="text-center text-sm text-gray-500 mt-1">
           Already have an Account?{" "}
           <Link

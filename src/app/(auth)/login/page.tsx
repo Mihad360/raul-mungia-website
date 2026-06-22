@@ -2,6 +2,7 @@
 
 import AuthCard from "@/components/auth/AuthCard";
 import { Loader } from "@/components/shared/Loader";
+import { getFcmToken } from "@/hook/useFcmToken";
 import { handleLoginSuccess } from "@/lib/auth/auth.handlers";
 import { useLoginUserMutation } from "@/redux/api/authApi";
 import Link from "next/link";
@@ -28,22 +29,16 @@ const LoginPage = () => {
   } = useForm<TLoginForm>();
 
   const onSubmit = async (data: TLoginForm) => {
-    console.log(data);
     try {
-      const res = await loginUser(data).unwrap();
-      console.log(res);
-      // Backend response shape: { success, data: { token, ... } }
+      // Get FCM token (silent fail if denied — login still proceeds)
+      const fcmToken = await getFcmToken();
+
+      const res = await loginUser({ ...data, fcmToken }).unwrap();
+
       const token = res?.data?.accessToken || res?.data?.token;
-
-      if (!token) {
-        toast.error("Login failed — no token received");
-        return;
-      }
-
+      console.log("Calling setClientToken...");
       handleLoginSuccess(token);
-
       toast.success("Welcome back!");
-
       router.push(redirectTo);
       router.refresh();
     } catch (error: unknown) {
@@ -57,7 +52,6 @@ const LoginPage = () => {
   return (
     <AuthCard subtitle="Welcome to our Company">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-        {/* Email */}
         <div>
           <input
             {...register("email", {
@@ -79,7 +73,6 @@ const LoginPage = () => {
           )}
         </div>
 
-        {/* Password */}
         <div>
           <input
             {...register("password", {
@@ -101,7 +94,6 @@ const LoginPage = () => {
           )}
         </div>
 
-        {/* Forgot password */}
         <div className="text-sm text-gray-500 -mt-1">
           Forget Password?{" "}
           <Link
@@ -113,7 +105,6 @@ const LoginPage = () => {
           </Link>
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
@@ -130,7 +121,6 @@ const LoginPage = () => {
           )}
         </button>
 
-        {/* Register link */}
         <p className="text-center text-sm text-gray-500 mt-1">
           Don&apos;t have an Account?{" "}
           <Link

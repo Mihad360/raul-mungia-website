@@ -30,6 +30,7 @@ import { useGetMyProfileQuery } from "@/redux/api/authApi";
 import { useGetCartCountQuery } from "@/redux/api/cartApi";
 // TODO: Adjust hook name if your wishlist API exposes it differently
 import { useGetMyWishlistQuery } from "@/redux/api/wishlistApi";
+import SearchDrawer from "./SearchDrawer";
 
 const Navbar = () => {
   const router = useRouter();
@@ -56,14 +57,16 @@ const Navbar = () => {
 
   // ─── Cart count (always fetched — backend supports guest carts) ───
   const { data: cartCountData } = useGetCartCountQuery(undefined);
-  const cartCount = cartCountData?.data?.totalItems ?? cartCountData?.data?.totalQuantity ?? 0;
+  const cartCount =
+    cartCountData?.data?.totalItems ?? cartCountData?.data?.totalQuantity ?? 0;
   // ─── Wishlist count (only when logged in) ───
   const { data: wishlistData } = useGetMyWishlistQuery(undefined, {
     skip: !isLoggedIn,
   });
   const wishlistCount =
-  wishlistData?.data?.products?.length ?? wishlistData?.data?.products?.length ?? 0;
-  console.log(wishlistCount);
+    wishlistData?.data?.products?.length ??
+    wishlistData?.data?.products?.length ??
+    0;
 
   const user = profileData?.data;
 
@@ -480,29 +483,8 @@ const Navbar = () => {
       </header>
 
       {/* Search Drawer */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
-          <div className="w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Search Products</h3>
-              <button
-                onClick={() => setSearchOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-4">
-              <input
-                type="text"
-                placeholder="Search for peptides, products..."
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#C70A24]"
-                autoFocus
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Search Drawer */}
+      <SearchDrawer isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Cart Drawer */}
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />

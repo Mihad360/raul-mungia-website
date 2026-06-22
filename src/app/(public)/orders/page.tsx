@@ -30,6 +30,7 @@ import {
   formatDate,
   getPaymentAlertType,
   OrderStatus,
+  FulfillmentBadge,
 } from "@/utils/orderHelpers";
 
 const STATUS_FILTERS: (
@@ -331,6 +332,7 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
       <div className="flex gap-2 flex-wrap">
         <OrderStatusBadge status={order.status} />
         <PaymentStatusBadge status={order.paymentStatus} />
+        <FulfillmentBadge type={order.fulfillmentType} />
       </div>
 
       {/* Status Timeline */}
@@ -536,7 +538,7 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
       </div>
 
       {/* Tracking */}
-      {order.trackingNumber && (
+      {order.fulfillmentType === "shipping" && order.trackingNumber && (
         <a
           href={`https://www.fedex.com/fedextrack/?trknbr=${order.trackingNumber}`}
           target="_blank"
@@ -554,6 +556,17 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
           </div>
         </a>
       )}
+      {order.fulfillmentType === "pickup" &&
+        order.status === "ready_for_pickup" && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="text-[10px] uppercase tracking-wide text-emerald-700 font-semibold mb-1">
+              Ready for Pickup
+            </p>
+            <p className="text-xs text-emerald-900">
+              Your order is ready to collect at our location.
+            </p>
+          </div>
+        )}
 
       {/* CTA */}
       <Link
@@ -569,12 +582,21 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
 
 // ─── Compact Timeline ──────────────────────────────────────────
 const CompactTimeline = ({ order }: { order: any }) => {
-  const steps = [
-    { key: "placed", label: "Placed", date: order.createdAt },
-    { key: "paid", label: "Paid", date: order.paidAt },
-    { key: "shipped", label: "Shipped", date: order.shippedAt },
-    { key: "delivered", label: "Delivered", date: order.deliveredAt },
-  ];
+  const isPickup = order.fulfillmentType === "pickup";
+
+  const steps = isPickup
+    ? [
+        { key: "placed", label: "Placed", date: order.createdAt },
+        { key: "paid", label: "Paid", date: order.paidAt },
+        { key: "ready", label: "Ready", date: order.pickupReadyAt },
+        { key: "picked_up", label: "Picked Up", date: order.deliveredAt },
+      ]
+    : [
+        { key: "placed", label: "Placed", date: order.createdAt },
+        { key: "paid", label: "Paid", date: order.paidAt },
+        { key: "shipped", label: "Shipped", date: order.shippedAt },
+        { key: "delivered", label: "Delivered", date: order.deliveredAt },
+      ];
 
   const currentStepIndex = steps.findIndex((s) => !s.date);
   const activeIndex =

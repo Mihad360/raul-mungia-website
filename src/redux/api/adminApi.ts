@@ -223,7 +223,14 @@ const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["disclaimer"],
     }),
-
+    updateShippingPolicy: build.mutation({
+      query: (body) => ({
+        url: "/admin/shipping-policy",
+        method: "PATCH",
+        data: body,
+      }),
+      invalidatesTags: ["shipping-policy"],
+    }),
     /* ===================== EXPLORE PURITY ===================== */
     createExplorePurity: build.mutation({
       query: (body) => ({
@@ -403,6 +410,7 @@ export const {
   // Disclaimer
   useCreateDisclaimerMutation,
   useUpdateDisclaimerMutation,
+  useUpdateShippingPolicyMutation,
 
   // Explore Purity
   useCreateExplorePurityMutation,

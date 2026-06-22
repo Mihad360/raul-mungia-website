@@ -21,6 +21,8 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Home,
+  Package,
 } from "lucide-react";
 import { Loader } from "@/components/shared/Loader";
 import { useGetCartSummaryQuery } from "@/redux/api/cartApi";
@@ -30,7 +32,7 @@ import { couponStorage } from "@/utils/couponStorage";
 import { usePlaceOrderMutation } from "@/redux/api/orderApi";
 import { useGetMyProfileQuery } from "@/redux/api/authApi";
 
-/* ─── Types matching backend response ────────────────────── */
+type TFulfillmentType = "pickup" | "shipping";
 
 interface IShippingOption {
   serviceType: string;
@@ -66,7 +68,6 @@ interface IAddress {
   country: string;
 }
 
-/* ─── US states for dropdown ────────────────────────────── */
 const US_STATES = [
   { code: "AL", name: "Alabama" },
   { code: "AK", name: "Alaska" },
@@ -120,12 +121,19 @@ const US_STATES = [
   { code: "WY", name: "Wyoming" },
 ];
 
-/* ═══════════════════════════════════════════════════════════
- *  MAIN CHECKOUT PAGE
- * ═══════════════════════════════════════════════════════════ */
+// ⚠️ Replace these with values from admin settings or env later
+const PICKUP_LOCATION = {
+  name: "Puratek Research Office",
+  address: "Contact us for the exact pickup address after placing your order",
+  hours: "Mon–Fri, 9:00 AM – 6:00 PM CST",
+};
 
 const CheckoutPage = () => {
   const router = useRouter();
+
+  // ─── Fulfillment state (NEW) ──────────────────────────────
+  const [fulfillmentType, setFulfillmentType] =
+    useState<TFulfillmentType | null>(null);
 
   // ─── Address state ────────────────────────────────────────
   const [address, setAddress] = useState<IAddress>({
@@ -153,7 +161,6 @@ const CheckoutPage = () => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
 
-  // ─── Restore coupon from cart page on mount ──────────────
   useEffect(() => {
     const stored = couponStorage.get();
     if (stored) {
@@ -163,28 +170,43 @@ const CheckoutPage = () => {
     }
   }, []);
 
-  // ─── API hooks ────────────────────────────────────────────
+  // Reset shipping selections when switching fulfillment type
+  const handleFulfillmentChange = (type: TFulfillmentType) => {
+    setFulfillmentType(type);
+    if (type === "pickup") {
+      setShippingOptions([]);
+      setSelectedShipping(null);
+      setRatesFetched(false);
+    }
+  };
+
+  const isPickup = fulfillmentType === "pickup";
+  const isShipping = fulfillmentType === "shipping";
+
+  // For pickup, shippingCost is always 0
+  const effectiveShippingCost = isPickup
+    ? 0
+    : selectedShipping?.customerPays || 0;
+
   const { data: summaryData, isFetching: summaryFetching } =
     useGetCartSummaryQuery({
       couponCode: appliedCouponCode || undefined,
-      shippingCost: selectedShipping?.customerPays || 0,
+      shippingCost: effectiveShippingCost,
     });
 
   const [getShippingRates, { isLoading: ratesLoading }] =
     useGetShippingRatesMutation();
-
   const { data: paymentMethodsData, isLoading: paymentMethodsLoading } =
     useGetActivePaymentMethodsQuery(undefined);
 
   const summary = summaryData?.data;
   const paymentMethods: IPaymentMethod[] = paymentMethodsData?.data || [];
-  // ─── User profile (for fullName + email in order) ─────────────
+
   const { data: profileData } = useGetMyProfileQuery(undefined);
   const user = profileData?.data;
 
   const [placeOrder, { isLoading: isPlacing }] = usePlaceOrderMutation();
 
-  // Sort payment methods by displayOrder
   const sortedPaymentMethods = useMemo(
     () =>
       [...paymentMethods].sort(
@@ -193,13 +215,12 @@ const CheckoutPage = () => {
     [paymentMethods],
   );
 
-  // ─── Address handlers ─────────────────────────────────────
+  // ─── Handlers ─────────────────────────────────────────────
   const handleAddressChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setAddress((prev) => ({ ...prev, [name]: value }));
-    // Reset shipping if address changed after fetching rates
     if (ratesFetched) {
       setShippingOptions([]);
       setSelectedShipping(null);
@@ -217,7 +238,6 @@ const CheckoutPage = () => {
     );
   };
 
-  // ─── Fetch shipping rates ─────────────────────────────────
   const handleFetchRates = async () => {
     if (!isAddressComplete()) {
       toast.error("Please fill in all required address fields");
@@ -232,14 +252,10 @@ const CheckoutPage = () => {
       countryCode: address.country,
     };
 
-    // 🔍 DEBUG: See exactly what's being sent to FedEx
-    console.log("FedEx payload:", JSON.stringify(fedexPayload, null, 2));
-
     try {
       const result = await getShippingRates({
         recipientAddress: fedexPayload,
       }).unwrap();
-
       const options: IShippingOption[] = result?.data || [];
       setShippingOptions(options);
       setRatesFetched(true);
@@ -254,7 +270,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // ─── Coupon handlers (persisted to localStorage) ──────────
   const handleApplyCoupon = () => {
     if (!couponInput.trim()) {
       toast.error("Enter a coupon code");
@@ -278,16 +293,24 @@ const CheckoutPage = () => {
     !summary.appliedCoupon
   );
 
-  // ─── Place order (stubbed for now) ────────────────────────
+  // ─── Place order ──────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    if (!isAddressComplete()) {
-      toast.error("Please complete your shipping address");
+    if (!fulfillmentType) {
+      toast.error("Please choose how you'd like to receive your order");
       return;
     }
-    if (!selectedShipping) {
-      toast.error("Please select a shipping method");
-      return;
+
+    if (isShipping) {
+      if (!isAddressComplete()) {
+        toast.error("Please complete your shipping address");
+        return;
+      }
+      if (!selectedShipping) {
+        toast.error("Please select a shipping method");
+        return;
+      }
     }
+
     if (!selectedPaymentMethod) {
       toast.error("Please select a payment method");
       return;
@@ -308,42 +331,53 @@ const CheckoutPage = () => {
     }
 
     try {
-      const payload = {
-        shippingAddress: {
-          fullName: user.name,
-          email: user.email,
-          phone: user.phone,
-          street: address.street,
-          apartment: address.apartment,
-          city: address.city,
-          state: address.state,
-          postalCode: address.postalCode,
-          country: address.country,
-        },
-        shippingMethod: selectedShipping.serviceType,
-        paymentMethodId: selectedPaymentMethod._id,
-        couponCode: appliedCouponCode || undefined,
-        customerNote: orderNote || undefined,
-      };
+      const payload = isPickup
+        ? {
+            fulfillmentType: "pickup" as const,
+            shippingAddress: {
+              fullName: user.name,
+              email: user.email,
+              phone: user.phone || "",
+              street: "",
+              apartment: "",
+              city: "",
+              state: "",
+              postalCode: "",
+              country: "US",
+            },
+            paymentMethodId: selectedPaymentMethod._id,
+            couponCode: appliedCouponCode || undefined,
+            customerNote: orderNote || undefined,
+          }
+        : {
+            fulfillmentType: "shipping" as const,
+            shippingAddress: {
+              fullName: user.name,
+              email: user.email,
+              phone: user.phone || "",
+              street: address.street,
+              apartment: address.apartment,
+              city: address.city,
+              state: address.state,
+              postalCode: address.postalCode,
+              country: address.country,
+            },
+            shippingMethod: selectedShipping!.serviceType,
+            paymentMethodId: selectedPaymentMethod._id,
+            couponCode: appliedCouponCode || undefined,
+            customerNote: orderNote || undefined,
+          };
 
-      const response = await placeOrder(payload).unwrap();
-      const orderId = response?.data?._id;
-
-      // Clear coupon since order is placed
+      await placeOrder(payload).unwrap();
       couponStorage.remove();
-
       toast.success("Order placed successfully!");
       router.push(`/orders`);
-
-      // Redirect to success page
-      // router.push(`/order-success?orderId=${orderId}`);
     } catch (err) {
       const error = err as { data?: { message?: string } };
       toast.error(error?.data?.message || "Failed to place order");
     }
   };
 
-  // ─── Empty cart redirect ──────────────────────────────────
   useEffect(() => {
     if (summary && summary.items && summary.items.length === 0) {
       toast.error("Your cart is empty");
@@ -379,44 +413,103 @@ const CheckoutPage = () => {
         </div>
       </div>
 
-      {/* Main content */}
       <section className="max-w-7xl mx-auto px-6 pb-12">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* ═══ LEFT COLUMN ═══ */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Section 1: Shipping Address */}
+            {/* ─── STEP 1: Fulfillment Method (NEW) ───────────── */}
             <SectionCard
-              icon={MapPin}
-              title="Shipping Address"
+              icon={Package}
+              title="How would you like to receive your order?"
               step={1}
-              done={isAddressComplete()}
+              done={!!fulfillmentType}
             >
-              <AddressForm address={address} onChange={handleAddressChange} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <FulfillmentCard
+                  selected={fulfillmentType === "shipping"}
+                  onClick={() => handleFulfillmentChange("shipping")}
+                  icon={Truck}
+                  title="Ship to Me"
+                  subtitle="FedEx delivery to your address"
+                  badge="Most popular"
+                />
+                <FulfillmentCard
+                  selected={fulfillmentType === "pickup"}
+                  onClick={() => handleFulfillmentChange("pickup")}
+                  icon={Home}
+                  title="Local Pickup"
+                  subtitle="Pick up from our location"
+                  badge="FREE"
+                  badgeColor="green"
+                />
+              </div>
+
+              {isPickup && (
+                <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Home
+                      size={18}
+                      className="text-emerald-700 mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-emerald-900 mb-1">
+                        Pickup Information
+                      </p>
+                      <p className="text-xs text-emerald-800 leading-relaxed">
+                        <strong>{PICKUP_LOCATION.name}</strong>
+                        <br />
+                        {PICKUP_LOCATION.address}
+                        <br />
+                        <span className="text-emerald-700">
+                          Hours: {PICKUP_LOCATION.hours}
+                        </span>
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-2 italic">
+                        We&apos;ll notify you by email and text when your order
+                        is ready to pick up.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </SectionCard>
 
-            {/* Section 2: Shipping Method */}
-            <SectionCard
-              icon={Truck}
-              title="Shipping Method"
-              step={2}
-              done={!!selectedShipping}
-            >
-              <ShippingSection
-                addressComplete={isAddressComplete()}
-                ratesFetched={ratesFetched}
-                ratesLoading={ratesLoading}
-                shippingOptions={shippingOptions}
-                selectedShipping={selectedShipping}
-                setSelectedShipping={setSelectedShipping}
-                onFetchRates={handleFetchRates}
-              />
-            </SectionCard>
+            {/* ─── STEP 2: Shipping Address (only for shipping) ─ */}
+            {isShipping && (
+              <SectionCard
+                icon={MapPin}
+                title="Shipping Address"
+                step={2}
+                done={isAddressComplete()}
+              >
+                <AddressForm address={address} onChange={handleAddressChange} />
+              </SectionCard>
+            )}
 
-            {/* Section 3: Payment Method */}
+            {/* ─── STEP 3: Shipping Method (only for shipping) ── */}
+            {isShipping && (
+              <SectionCard
+                icon={Truck}
+                title="Shipping Method"
+                step={3}
+                done={!!selectedShipping}
+              >
+                <ShippingSection
+                  addressComplete={isAddressComplete()}
+                  ratesFetched={ratesFetched}
+                  ratesLoading={ratesLoading}
+                  shippingOptions={shippingOptions}
+                  selectedShipping={selectedShipping}
+                  setSelectedShipping={setSelectedShipping}
+                  onFetchRates={handleFetchRates}
+                />
+              </SectionCard>
+            )}
+
+            {/* ─── Payment Method ─────────────────────────────── */}
             <SectionCard
               icon={CreditCard}
               title="Payment Method"
-              step={3}
+              step={isShipping ? 4 : 2}
               done={
                 !!selectedPaymentMethod && !selectedPaymentMethod.isAutomated
               }
@@ -429,7 +522,7 @@ const CheckoutPage = () => {
               />
             </SectionCard>
 
-            {/* Order Notes */}
+            {/* ─── Order Notes ────────────────────────────────── */}
             <div className="bg-white rounded-lg p-6 border border-gray-100">
               <h3 className="text-base font-semibold text-gray-900 mb-3">
                 Order Notes{" "}
@@ -439,16 +532,21 @@ const CheckoutPage = () => {
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
                 rows={3}
-                placeholder="Special instructions, delivery preferences, etc."
+                placeholder={
+                  isPickup
+                    ? "Preferred pickup time, special requests, etc."
+                    : "Special instructions, delivery preferences, etc."
+                }
                 className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition-colors resize-none"
               />
             </div>
           </div>
 
-          {/* ═══ RIGHT COLUMN — Order Summary ═══ */}
+          {/* ─── Order Summary (right column) ─────────────────── */}
           <div className="lg:col-span-1">
             <OrderSummary
               summary={summary}
+              fulfillmentType={fulfillmentType}
               selectedShipping={selectedShipping}
               couponInput={couponInput}
               setCouponInput={setCouponInput}
@@ -507,6 +605,73 @@ const SectionCard = ({
     <div className="p-6">{children}</div>
   </div>
 );
+
+/* ─── Fulfillment Card (NEW) ────────────────────────────────── */
+
+const FulfillmentCard = ({
+  selected,
+  onClick,
+  icon: Icon,
+  title,
+  subtitle,
+  badge,
+  badgeColor = "blue",
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: any;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  badgeColor?: "blue" | "green";
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative text-left p-5 rounded-lg border-2 transition-all cursor-pointer ${
+        selected
+          ? "border-[#C70A24] bg-red-50/50 shadow-sm"
+          : "border-gray-200 hover:border-gray-300 bg-white"
+      }`}
+    >
+      {badge && (
+        <span
+          className={`absolute top-3 right-3 px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+            badgeColor === "green"
+              ? "bg-green-100 text-green-700"
+              : "bg-blue-100 text-blue-700"
+          }`}
+        >
+          {badge}
+        </span>
+      )}
+      <div className="flex items-start gap-3">
+        <div
+          className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            selected ? "bg-red-100" : "bg-gray-100"
+          }`}
+        >
+          <Icon
+            size={22}
+            className={selected ? "text-[#C70A24]" : "text-gray-500"}
+          />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-semibold text-gray-900">{title}</p>
+            {selected && (
+              <div className="w-4 h-4 rounded-full bg-[#C70A24] flex items-center justify-center">
+                <Check size={10} className="text-white" />
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">{subtitle}</p>
+        </div>
+      </div>
+    </button>
+  );
+};
 
 /* ─── Address Form ──────────────────────────────────────────── */
 
@@ -771,7 +936,7 @@ const ShippingOptionRow = ({
   );
 };
 
-/* ─── Payment Section ───────────────────────────────────────── */
+/* ─── Payment Section (unchanged from yours) ───────────────── */
 
 const PaymentSection = ({
   methods,
@@ -810,7 +975,6 @@ const PaymentSection = ({
           onSelect={() => onSelect(method)}
         />
       ))}
-
       {selected && (
         <div className="mt-4 pt-4 border-t border-gray-100">
           <PaymentMethodDetails method={selected} />
@@ -829,8 +993,7 @@ const PaymentMethodRow = ({
   selected: boolean;
   onSelect: () => void;
 }) => {
-  const isComingSoon = method.isAutomated; // Bankful pending approval
-
+  const isComingSoon = method.isAutomated;
   return (
     <button
       type="button"
@@ -851,7 +1014,6 @@ const PaymentMethodRow = ({
             <div className="w-2.5 h-2.5 rounded-full bg-[#C70A24]" />
           )}
         </div>
-
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-medium text-gray-900 text-sm">
@@ -880,7 +1042,6 @@ const PaymentMethodRow = ({
 };
 
 const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
-  // Bankful methods — Coming Soon banner
   if (method.isAutomated) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -902,7 +1063,6 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
     );
   }
 
-  // Manual P2P methods — show preview of post-order instructions
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
       <div className="flex items-start gap-3">
@@ -924,7 +1084,8 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
             )}
             <li>Include your order number in the payment note.</li>
             <li>
-              Our team will confirm payment within 24 hours and ship your order.
+              Our team will confirm payment within 24 hours and process your
+              order.
             </li>
           </ol>
           {method.instructionsForCustomer && (
@@ -938,10 +1099,11 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
   );
 };
 
-/* ─── Order Summary (right sidebar) ─────────────────────────── */
+/* ─── Order Summary (updated for pickup) ────────────────────── */
 
 const OrderSummary = ({
   summary,
+  fulfillmentType,
   selectedShipping,
   couponInput,
   setCouponInput,
@@ -956,6 +1118,7 @@ const OrderSummary = ({
   isPlacing,
 }: {
   summary: any;
+  fulfillmentType: TFulfillmentType | null;
   selectedShipping: IShippingOption | null;
   couponInput: string;
   setCouponInput: (v: string) => void;
@@ -971,10 +1134,11 @@ const OrderSummary = ({
 }) => {
   const [itemsExpanded, setItemsExpanded] = useState(false);
 
+  const isPickup = fulfillmentType === "pickup";
   const subtotal = summary?.subtotal ?? 0;
   const couponDiscountAmount = summary?.couponDiscountAmount ?? 0;
   const bulkDiscountAmount = summary?.bulkDiscountAmount ?? 0;
-  const shippingCost = summary?.shippingCost ?? 0;
+  const shippingCost = isPickup ? 0 : (summary?.shippingCost ?? 0);
   const total = summary?.total ?? 0;
   const items = summary?.items || [];
 
@@ -1119,15 +1283,20 @@ const OrderSummary = ({
 
         <div className="flex justify-between text-sm pt-3 border-t border-gray-100">
           <span className="text-gray-600">
-            Shipping
-            {selectedShipping && (
+            {isPickup ? "Pickup" : "Shipping"}
+            {!isPickup && selectedShipping && (
               <span className="block text-xs text-gray-400">
                 {selectedShipping.serviceName}
               </span>
             )}
+            {isPickup && (
+              <span className="block text-xs text-gray-400">Local pickup</span>
+            )}
           </span>
           <span className="text-gray-900 font-medium">
-            {!selectedShipping ? (
+            {isPickup ? (
+              <span className="text-green-600">FREE</span>
+            ) : !selectedShipping ? (
               <span className="text-gray-400">Not selected</span>
             ) : selectedShipping.freeShippingApplied ? (
               <span className="text-green-600">FREE</span>
@@ -1143,7 +1312,6 @@ const OrderSummary = ({
         <span style={{ color: "#C70A24" }}>${total.toFixed(2)}</span>
       </div>
 
-      {/* Terms */}
       <label className="flex items-start gap-2 mb-5 cursor-pointer">
         <input
           type="checkbox"
@@ -1163,7 +1331,6 @@ const OrderSummary = ({
         </span>
       </label>
 
-      {/* Place Order */}
       <button
         onClick={onPlaceOrder}
         disabled={summaryFetching || isPlacing}

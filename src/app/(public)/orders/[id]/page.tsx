@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import RmModal from "@/components/ui/RmModal";
@@ -29,6 +30,7 @@ import {
   formatDate,
   formatDateShort,
   canCancelOrder,
+  FulfillmentBadge,
 } from "@/utils/orderHelpers";
 
 export default function OrderDetailPage({
@@ -119,6 +121,7 @@ export default function OrderDetailPage({
           <div className="flex items-center gap-2 mt-3">
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.paymentStatus} />
+            <FulfillmentBadge type={order.fulfillmentType} />
           </div>
         </div>
 
@@ -233,7 +236,7 @@ export default function OrderDetailPage({
           </Section>
 
           {/* Tracking */}
-          {order.trackingNumber && (
+          {order.fulfillmentType !== "pickup" && order.trackingNumber && (
             <Section title="Tracking" icon={<Truck size={18} />}>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -311,28 +314,63 @@ export default function OrderDetailPage({
           </Section>
 
           {/* Shipping Address */}
-          <Section title="Shipping Address" icon={<MapPin size={18} />}>
-            <div className="text-sm text-gray-700 space-y-0.5">
-              <p className="font-semibold text-gray-900">
-                {order.shippingAddress?.fullName}
-              </p>
-              <p>{order.shippingAddress?.street}</p>
-              {order.shippingAddress?.apartment && (
-                <p>{order.shippingAddress.apartment}</p>
-              )}
-              <p>
-                {order.shippingAddress?.city}, {order.shippingAddress?.state}{" "}
-                {order.shippingAddress?.postalCode}
-              </p>
-              <p>{order.shippingAddress?.country}</p>
-              <p className="pt-2 text-xs text-gray-500">
-                {order.shippingAddress?.email}
-              </p>
-              <p className="text-xs text-gray-500">
-                {order.shippingAddress?.phone}
-              </p>
-            </div>
-          </Section>
+          {order.fulfillmentType === "pickup" ? (
+            <Section title="Pickup Information" icon={<Home size={18} />}>
+              <div className="text-sm space-y-2">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                  <p className="font-semibold text-emerald-900 mb-1">
+                    Local Pickup Order
+                  </p>
+                  <p className="text-xs text-emerald-800 leading-relaxed">
+                    You&apos;ll be notified by email when your order is ready to
+                    collect.
+                    {order.pickupReadyAt && (
+                      <span className="block mt-1 font-semibold">
+                        ✓ Ready since {formatDate(order.pickupReadyAt)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <p className="text-xs text-gray-500">Contact</p>
+                  <p className="font-medium text-gray-900">
+                    {order.shippingAddress?.fullName}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {order.shippingAddress?.email}
+                  </p>
+                  {order.shippingAddress?.phone && (
+                    <p className="text-xs text-gray-600">
+                      {order.shippingAddress.phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Section>
+          ) : (
+            <Section title="Shipping Address" icon={<MapPin size={18} />}>
+              <div className="text-sm text-gray-700 space-y-0.5">
+                <p className="font-semibold text-gray-900">
+                  {order.shippingAddress?.fullName}
+                </p>
+                <p>{order.shippingAddress?.street}</p>
+                {order.shippingAddress?.apartment && (
+                  <p>{order.shippingAddress.apartment}</p>
+                )}
+                <p>
+                  {order.shippingAddress?.city}, {order.shippingAddress?.state}{" "}
+                  {order.shippingAddress?.postalCode}
+                </p>
+                <p>{order.shippingAddress?.country}</p>
+                <p className="pt-2 text-xs text-gray-500">
+                  {order.shippingAddress?.email}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {order.shippingAddress?.phone}
+                </p>
+              </div>
+            </Section>
+          )}
 
           {/* Payment Method */}
           <Section title="Payment Method" icon={<CreditCard size={18} />}>
@@ -424,14 +462,22 @@ export default function OrderDetailPage({
 const StatusTimeline = ({ order }: { order: any }) => {
   if (order.status === "cancelled" || order.status === "refunded") return null;
 
-  const steps = [
-    { key: "placed", label: "Placed", date: order.createdAt },
-    { key: "paid", label: "Paid", date: order.paidAt },
-    { key: "shipped", label: "Shipped", date: order.shippedAt },
-    { key: "delivered", label: "Delivered", date: order.deliveredAt },
-  ];
+  const isPickup = order.fulfillmentType === "pickup";
 
-  // Determine which step we're at
+  const steps = isPickup
+    ? [
+        { key: "placed", label: "Placed", date: order.createdAt },
+        { key: "paid", label: "Paid", date: order.paidAt },
+        { key: "ready", label: "Ready for Pickup", date: order.pickupReadyAt },
+        { key: "picked_up", label: "Picked Up", date: order.deliveredAt },
+      ]
+    : [
+        { key: "placed", label: "Placed", date: order.createdAt },
+        { key: "paid", label: "Paid", date: order.paidAt },
+        { key: "shipped", label: "Shipped", date: order.shippedAt },
+        { key: "delivered", label: "Delivered", date: order.deliveredAt },
+      ];
+
   const currentStepIndex = steps.findIndex((s) => !s.date);
   const activeIndex =
     currentStepIndex === -1 ? steps.length - 1 : currentStepIndex - 1;
@@ -439,7 +485,6 @@ const StatusTimeline = ({ order }: { order: any }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-6 mb-6">
       <div className="flex items-center justify-between relative">
-        {/* Progress line */}
         <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200 -z-0">
           <div
             className="h-full transition-all"

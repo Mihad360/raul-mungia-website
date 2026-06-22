@@ -38,6 +38,13 @@ export const settingsApi = baseApi.injectEndpoints({
       providesTags: ["disclaimer"],
     }),
 
+    getAllShippingPolicy: builder.query({
+      query: () => ({
+        url: "/shipping-policy/",
+        method: "GET",
+      }),
+      providesTags: ["shipping-policy"],
+    }),
     // Explore Purity (read-only public)
     getExplorePurity: builder.query({
       query: () => ({ url: "/explore-purity", method: "GET" }),
@@ -91,4 +98,6 @@ export const {
 
   // Terms
   useGetAllTermsQuery,
+
+  useGetAllShippingPolicyQuery,
 } = settingsApi;

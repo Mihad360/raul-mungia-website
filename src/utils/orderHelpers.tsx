@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Hourglass,
   ShieldQuestion,
+  Pickaxe,
 } from "lucide-react";
 
 export type OrderStatus =
@@ -16,6 +17,7 @@ export type OrderStatus =
   | "awaiting_payment"
   | "paid"
   | "processing"
+  | "ready_for_pickup" // NEW
   | "shipped"
   | "delivered"
   | "cancelled"
@@ -55,6 +57,12 @@ export const orderStatusConfig: Record<
     text: "text-blue-700",
     label: "Processing",
     icon: Package,
+  },
+  ready_for_pickup: {
+    label: "Ready for Pickup",
+    bg: "bg-amber-100",
+    text: "text-amber-800",
+    icon: Pickaxe,
   },
   shipped: {
     bg: "bg-purple-50",
@@ -129,6 +137,21 @@ export const PaymentStatusBadge = ({ status }: { status: PaymentStatus }) => {
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}
     >
       {cfg.label}
+    </span>
+  );
+};
+
+export const FulfillmentBadge = ({ type }: { type: "pickup" | "shipping" }) => {
+  const isPickup = type === "pickup";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
+        isPickup
+          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          : "bg-blue-50 text-blue-700 border border-blue-200"
+      }`}
+    >
+      {isPickup ? "🏠 Pickup" : "📦 Ship"}
     </span>
   );
 };
