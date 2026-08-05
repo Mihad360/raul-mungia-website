@@ -58,6 +58,22 @@ const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["product"],
     }),
+    uploadProductCertificate: build.mutation({
+      query: ({ id, formData }: { id: string; formData: FormData }) => ({
+        url: `/admin/product/${id}/certificate`,
+        method: "PATCH",
+        data: formData,
+      }),
+      invalidatesTags: ["product"],
+    }),
+
+    removeProductCertificate: build.mutation({
+      query: (id: string) => ({
+        url: `/admin/product/${id}/certificate`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["product"],
+    }),
     deleteProduct: build.mutation({
       query: (id) => ({
         url: `/admin/product/${id}`,
@@ -438,4 +454,6 @@ export const {
   // Terms
   useCreateTermsMutation,
   useUpdateTermsMutation,
+  useUploadProductCertificateMutation,
+  useRemoveProductCertificateMutation,
 } = adminApi;

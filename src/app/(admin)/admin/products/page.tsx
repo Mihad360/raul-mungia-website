@@ -16,9 +16,16 @@ import {
   Upload,
   X,
   ImageIcon,
-  Eye, // ← ADD
+  Eye,
+  FileCheck2,
+  FileX2,
+  FileText,
+  Calendar,
+  Hash,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
-import { message } from "antd";
+import { message, Modal } from "antd";
 import RmModal from "@/components/ui/RmModal";
 import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
@@ -31,6 +38,8 @@ import {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useUploadProductCertificateMutation,
+  useRemoveProductCertificateMutation,
 } from "@/redux/api/adminApi";
 
 // ─── Backend-aligned types ────────────────────────────────────
@@ -40,6 +49,15 @@ type Variant = {
   originalPrice?: number;
   stock: number;
   weight: number;
+};
+
+type ProductCertificate = {
+  url: string;
+  publicId?: string;
+  fileType: "pdf" | "image";
+  batchNumber?: string;
+  testDate?: string;
+  uploadedAt?: string;
 };
 
 type Product = {
@@ -56,6 +74,7 @@ type Product = {
   variants: Variant[];
   lowStockThreshold?: number;
   isActive?: boolean;
+  certificate?: ProductCertificate | null;
   createdAt?: string;
 };
 
@@ -96,6 +115,15 @@ const getCategoryName = (product: Product): string => {
   return "Uncategorized";
 };
 
+const formatDate = (date?: string) => {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 // ─── Status Badge ─────────────────────────────────────────────
 const StatusBadge = ({ status }: { status: ProductStatus }) => {
   const config = {
@@ -121,6 +149,30 @@ const StatusBadge = ({ status }: { status: ProductStatus }) => {
       className={`px-2 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}
     >
       {label}
+    </span>
+  );
+};
+
+// ─── COA Indicator (small badge for table) ────────────────────
+const CoaIndicator = ({ hasCertificate }: { hasCertificate: boolean }) => {
+  if (hasCertificate) {
+    return (
+      <span
+        title="Has Certificate of Analysis"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-50 text-green-700"
+      >
+        <FileCheck2 size={11} />
+        COA
+      </span>
+    );
+  }
+  return (
+    <span
+      title="No Certificate of Analysis"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700"
+    >
+      <FileX2 size={11} />
+      No COA
     </span>
   );
 };
@@ -642,9 +694,301 @@ const ProductFormModal = ({
               rows={4}
             />
           </div>
+
+          {/* Hint about COA */}
+          {!isEditing && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 flex items-start gap-2">
+              <FileText size={14} className="mt-0.5 flex-shrink-0" />
+              <p>
+                You can upload the{" "}
+                <strong>Certificate of Analysis (COA)</strong> after creating
+                the product, from the product details view.
+              </p>
+            </div>
+          )}
         </div>
       </RmForm>
     </RmModal>
+  );
+};
+
+// ─── COA Management Section (inside Details Modal) ────────────
+const CoaManagementSection = ({
+  product,
+  onUpdated,
+}: {
+  product: Product;
+  onUpdated: (updated: Product) => void;
+}) => {
+  const hasCert = !!product.certificate?.url;
+
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [batchNumber, setBatchNumber] = useState("");
+  const [testDate, setTestDate] = useState("");
+
+  const [uploadCert, { isLoading: isUploading }] =
+    useUploadProductCertificateMutation();
+  const [removeCert, { isLoading: isRemoving }] =
+    useRemoveProductCertificateMutation();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    const allowed = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
+    if (!allowed.includes(file.type)) {
+      message.error("Only PDF or image files (JPG, PNG, WEBP) are allowed");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      message.error("File must be less than 10MB");
+      return;
+    }
+
+    setUploadFile(file);
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFile) {
+      message.error("Please select a file first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append(
+      "data",
+      JSON.stringify({
+        batchNumber: batchNumber.trim() || undefined,
+        testDate: testDate || undefined,
+      }),
+    );
+
+    try {
+      const response = await uploadCert({
+        id: product._id,
+        formData,
+      }).unwrap();
+
+      message.success("Certificate uploaded successfully");
+      setUploadFile(null);
+      setBatchNumber("");
+      setTestDate("");
+
+      // Update parent view state with fresh product
+      const updatedProduct = response?.data || response;
+      if (updatedProduct) onUpdated(updatedProduct);
+    } catch (err: any) {
+      message.error(err?.data?.message || "Failed to upload certificate");
+    }
+  };
+
+  const handleRemove = () => {
+    Modal.confirm({
+      title: "Remove Certificate of Analysis?",
+      content:
+        "This will remove the COA from this product. Customers won't be able to view it until you upload a new one.",
+      okText: "Yes, Remove",
+      cancelText: "Cancel",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const response = await removeCert(product._id).unwrap();
+          message.success("Certificate removed");
+
+          const updatedProduct = response?.data || response;
+          if (updatedProduct) onUpdated(updatedProduct);
+        } catch (err: any) {
+          message.error(err?.data?.message || "Failed to remove certificate");
+        }
+      },
+    });
+  };
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+          <FileText size={18} />
+          Certificate of Analysis
+        </h4>
+        <CoaIndicator hasCertificate={hasCert} />
+      </div>
+
+      {/* Current COA */}
+      {hasCert && product.certificate && (
+        <div className="bg-white border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <FileCheck2 size={16} className="text-green-600" />
+                <p className="font-semibold text-gray-900 text-sm">
+                  Active Certificate
+                </p>
+                <span className="text-xs text-gray-500 uppercase font-mono px-1.5 py-0.5 bg-gray-100 rounded">
+                  {product.certificate.fileType}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                    <Hash size={10} /> Batch
+                  </p>
+                  <p className="font-mono text-gray-900">
+                    {product.certificate.batchNumber || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                    <Calendar size={10} /> Tested
+                  </p>
+                  <p className="font-mono text-gray-900">
+                    {formatDate(product.certificate.testDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                    <Upload size={10} /> Uploaded
+                  </p>
+                  <p className="font-mono text-gray-900">
+                    {formatDate(product.certificate.uploadedAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <a
+                href={product.certificate.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "#C70A24" }}
+              >
+                View <ExternalLink size={11} />
+              </a>
+              <button
+                type="button"
+                onClick={handleRemove}
+                disabled={isRemoving}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 size={11} />
+                {isRemoving ? "Removing..." : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload / Replace */}
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-3">
+          {hasCert ? "Replace Certificate" : "Upload Certificate"}
+        </p>
+
+        <div className="space-y-3">
+          {/* File picker */}
+          <label
+            htmlFor="coa-upload"
+            className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+              uploadFile
+                ? "border-green-300 bg-green-50"
+                : "border-gray-300 hover:border-gray-400 bg-white"
+            }`}
+          >
+            {uploadFile ? (
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <FileCheck2 size={18} className="text-green-600" />
+                <span className="font-medium text-gray-900">
+                  {uploadFile.name}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <Upload size={24} className="text-gray-400" />
+                <p className="text-sm text-gray-600">
+                  Click to upload PDF or image
+                </p>
+                <p className="text-xs text-gray-400">
+                  Max 10MB · PDF, JPG, PNG, WEBP
+                </p>
+              </div>
+            )}
+            <input
+              id="coa-upload"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </label>
+
+          {/* Metadata fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block flex items-center gap-1">
+                <Hash size={10} />
+                Batch Number{" "}
+                <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={batchNumber}
+                onChange={(e) => setBatchNumber(e.target.value)}
+                placeholder="e.g. BATCH-2025-04"
+                className="w-full px-3 py-2 rounded border border-gray-200 text-sm outline-none focus:border-gray-400 bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block flex items-center gap-1">
+                <Calendar size={10} />
+                Test Date{" "}
+                <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={testDate}
+                onChange={(e) => setTestDate(e.target.value)}
+                className="w-full px-3 py-2 rounded border border-gray-200 text-sm outline-none focus:border-gray-400 bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Upload button */}
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={!uploadFile || isUploading}
+            className="w-full py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload size={14} />
+                {hasCert ? "Replace Certificate" : "Upload Certificate"}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -711,10 +1055,12 @@ const ProductDetailsModal = ({
   isOpen,
   onClose,
   product,
+  onProductUpdated,
 }: {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
+  onProductUpdated: (updated: Product) => void;
 }) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
@@ -805,6 +1151,7 @@ const ProductDetailsModal = ({
                 <Layers size={14} />
                 {getCategoryName(product)}
               </span>
+              <CoaIndicator hasCertificate={!!product.certificate?.url} />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
@@ -839,6 +1186,9 @@ const ProductDetailsModal = ({
             </div>
           </div>
         </div>
+
+        {/* COA Management — placed prominently after main info */}
+        <CoaManagementSection product={product} onUpdated={onProductUpdated} />
 
         {/* Variants Table */}
         <div>
@@ -997,9 +1347,9 @@ export default function ProductsPage() {
           p.lowStockThreshold || 20,
         ) === "low-stock",
     ).length;
-    const categoryCount = new Set(products.map(getCategoryName)).size;
+    const missingCoa = products.filter((p) => !p.certificate?.url).length;
 
-    return { totalProducts, inStock, lowStock, categoryCount };
+    return { totalProducts, inStock, lowStock, missingCoa };
   }, [products, meta.total]);
 
   // ─── Handlers ───────────────────────────────────────────────
@@ -1093,9 +1443,12 @@ export default function ProductsPage() {
           <p className="font-semibold text-gray-900 line-clamp-1">
             {product.title}
           </p>
-          <p className="text-xs text-gray-500 font-mono mt-0.5">
-            {product.productCode}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs text-gray-500 font-mono">
+              {product.productCode}
+            </p>
+            <CoaIndicator hasCertificate={!!product.certificate?.url} />
+          </div>
         </div>
       ),
     },
@@ -1230,10 +1583,10 @@ export default function ProductsPage() {
           color="#f59e0b"
         />
         <KPICard
-          title="Categories"
-          value={kpis.categoryCount}
-          icon={Layers}
-          color="#a855f7"
+          title="Missing COA"
+          value={kpis.missingCoa}
+          icon={FileX2}
+          color="#dc2626"
         />
       </div>
 
@@ -1315,6 +1668,7 @@ export default function ProductsPage() {
           setViewProduct(null);
         }}
         product={viewProduct}
+        onProductUpdated={(updated) => setViewProduct(updated)}
       />
     </div>
   );

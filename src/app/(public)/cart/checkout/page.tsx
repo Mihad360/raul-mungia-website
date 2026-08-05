@@ -231,6 +231,7 @@ const CheckoutPage = () => {
   const isAddressComplete = (): boolean => {
     return Boolean(
       address.street.trim() &&
+      address.apartment.trim() && // ← NEW
       address.city.trim() &&
       address.state.trim() &&
       address.postalCode.trim() &&
@@ -707,15 +708,23 @@ const AddressForm = ({
       />
     </FormField>
 
-    <FormField label="Apartment / Suite" className="md:col-span-2">
+    <FormField
+      label="Apartment / Suite / Unit"
+      required
+      className="md:col-span-2"
+    >
       <input
         type="text"
         name="apartment"
         value={address.apartment}
         onChange={onChange}
-        placeholder="(optional)"
+        placeholder="Apt 5B, Suite 200, Unit 12, etc."
         className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#C70A24] transition-colors"
       />
+      <p className="text-xs text-gray-500 mt-1">
+        Enter your unit number, or type <strong>N/A</strong> if you don&apos;t
+        have one (e.g. single-family home).
+      </p>
     </FormField>
 
     <FormField label="City" required>

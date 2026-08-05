@@ -14,24 +14,48 @@ const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
       if (!("serviceWorker" in navigator)) return;
 
       try {
-        // Register the SW eagerly (doesn't require permission — only getToken does)
         await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
           scope: "/",
         });
-
-        // Wait for it to become active
         await navigator.serviceWorker.ready;
 
-        // Now set up the foreground message listener
         const messaging = await getMessagingInstance();
         if (!messaging) return;
 
         unsubscribe = onMessage(messaging, (payload) => {
           console.log("Foreground FCM message:", payload);
-          toast(payload.notification?.title || "New notification", {
-            description: payload.notification?.body || "",
+
+          const title = payload.notification?.title || "New notification";
+          const body = payload.notification?.body || "";
+          const orderId = payload.data?.orderId as string | undefined;
+
+          // ─── 1. Sonner toast at bottom-right (won't collide with top-center) ───
+          toast(title, {
+            description: body,
             duration: 5000,
+            position: "top-center",
           });
+
+          // ─── 2. Native browser/OS notification ───
+          if (
+            "Notification" in window &&
+            Notification.permission === "granted"
+          ) {
+            const notification = new Notification(title, {
+              body,
+              icon: "/notification-icon.svg",
+              badge: "/notification-icon.svg",
+              tag: orderId || "notification",
+            });
+
+            notification.onclick = () => {
+              window.focus();
+              if (orderId) {
+                window.location.href = `/orders/${orderId}`;
+              }
+              notification.close();
+            };
+          }
         });
       } catch (err) {
         console.error("FCM listener setup failed:", err);

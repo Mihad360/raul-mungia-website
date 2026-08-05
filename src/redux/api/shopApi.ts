@@ -61,10 +61,18 @@ const shopApi = baseApi.injectEndpoints({
     /** Get featured / best-selling products */
     getFeaturedProducts: build.query({
       query: () => ({
-        url: "/products/featured",
+        url: "/product/featured",
         method: "GET",
       }),
       providesTags: ["product"],
+    }),
+    getProductCertificate: build.query({
+      query: (id: string) => ({
+        url: `/product/${id}/certificate`,
+        method: "GET",
+      }),
+      // Don't cache aggressively — we want fresh URL when reopening modal
+      keepUnusedDataFor: 60,
     }),
   }),
 });
@@ -75,4 +83,6 @@ export const {
   useGetProductsByCategoryQuery,
   useGetRelatedProductsQuery,
   useGetFeaturedProductsQuery,
+  useGetProductCertificateQuery,
+  useLazyGetProductCertificateQuery,
 } = shopApi;

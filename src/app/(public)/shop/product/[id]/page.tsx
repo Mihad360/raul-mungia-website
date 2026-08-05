@@ -11,12 +11,20 @@ import {
   Ticket,
   Percent,
   ShoppingBag,
+  ShieldCheck,
+  FileText,
+  Lock,
+  Loader2,
+  X,
+  Calendar,
+  Hash,
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductCard from "@/components/ui/ProductCard";
 import {
   useGetProductByIdQuery,
   useGetRelatedProductsQuery,
+  useGetProductCertificateQuery,
 } from "@/redux/api/shopApi";
 import { useGetActiveDiscountQuery } from "@/redux/api/discountApi";
 import { useGetAvailableCouponsQuery } from "@/redux/api/couponApi";
@@ -38,6 +46,15 @@ interface IProductVariant {
   weight: number;
 }
 
+// Public-facing certificate shape (URL is stripped by backend)
+interface IProductCertificatePublic {
+  hasCertificate: boolean;
+  fileType?: "pdf" | "image";
+  batchNumber?: string;
+  testDate?: string;
+  uploadedAt?: string;
+}
+
 interface IProduct {
   _id: string;
   title: string;
@@ -51,6 +68,7 @@ interface IProduct {
   images: string[];
   lowStockThreshold: number;
   isActive: boolean;
+  certificate?: IProductCertificatePublic | null;
 }
 
 interface DiscountTier {
@@ -94,7 +112,7 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const activeDiscount: ActiveDiscount | undefined = activeDiscountData?.data;
   const availableCoupons: AvailableCoupon[] = availableCouponsData?.data || [];
 
-  // Wishlist check — only when logged in & product loaded
+  // Wishlist check
   const { data: wishlistCheckData } = useCheckInWishlistQuery(id, {
     skip: !product || !isLoggedIn,
   });
@@ -119,8 +137,8 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [activeImage, setActiveImage] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [showCoaModal, setShowCoaModal] = useState(false); // NEW
 
-  // Set defaults on product load
   useEffect(() => {
     if (product) {
       if (product.variants[0]) {
@@ -243,6 +261,15 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
     return `Valid until ${expiry.toLocaleDateString()}`;
   };
 
+  const formatDate = (date?: string) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   // Related products
   const { data: relatedData } = useGetRelatedProductsQuery(id, {
     skip: !product,
@@ -277,6 +304,7 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   }
 
   const allImages = [product.mainImage, ...(product.images || [])];
+  const hasCertificate = !!product.certificate?.hasCertificate;
 
   return (
     <main className="min-h-screen bg-white">
@@ -471,25 +499,79 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
               )}
             </div>
 
+            {/* ═══ COA Trust Badge (NEW) ═════════════════════════════ */}
+            {/* ═══ COA Trust Badge ═════════════════════════════ */}
+            {hasCertificate ? (
+              <div className="mb-6 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-emerald-100 rounded-full p-2 flex-shrink-0">
+                    <ShieldCheck className="text-emerald-700" size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-semibold text-emerald-900 text-sm">
+                        Lab-Verified Purity
+                      </h3>
+                      <span className="px-2 py-0.5 bg-white border border-emerald-200 rounded-full text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
+                        COA Available
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-800 leading-relaxed mb-2">
+                      Independent third-party laboratory analysis confirms this
+                      product&apos;s identity and purity.
+                      {product.certificate?.batchNumber && (
+                        <span className="ml-1">
+                          Batch{" "}
+                          <span className="font-mono font-semibold">
+                            {product.certificate.batchNumber}
+                          </span>
+                          .
+                        </span>
+                      )}
+                      {product.certificate?.testDate && (
+                        <span className="ml-1">
+                          Tested {formatDate(product.certificate.testDate)}.
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      onClick={() => setShowCoaModal(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-sm font-semibold hover:bg-emerald-50 transition-colors cursor-pointer"
+                    >
+                      <FileText size={14} />
+                      View Certificate of Analysis
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-amber-100 rounded-full p-2 flex-shrink-0">
+                    <FileText className="text-amber-700" size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-semibold text-amber-900 text-sm">
+                        Certificate of Analysis
+                      </h3>
+                      <span className="px-2 py-0.5 bg-white border border-amber-200 rounded-full text-[10px] font-bold text-amber-700 uppercase tracking-wide">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      A fresh third-party laboratory analysis is being prepared
+                      for this product&apos;s current batch. The full
+                      Certificate of Analysis will be available here shortly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-sm text-gray-600 leading-relaxed mb-6">
               {product.description}
             </p>
-
-            {/* Features */}
-            <div className="space-y-2 mb-6">
-              {[
-                "Batch-Verified Purity 99%",
-                "Third-Party Certified",
-                "Our 99% Guarantee — Independent test bath, Full refund",
-              ].map((feature, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <span className="text-[#C70A24] text-lg font-bold mt-0.5">
-                    ●
-                  </span>
-                  <span className="text-sm text-gray-600">{feature}</span>
-                </div>
-              ))}
-            </div>
 
             {/* Size selector */}
             <div className="mb-6">
@@ -502,7 +584,6 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     key={variant._id}
                     onClick={() => {
                       setSelectedVariantId(variant._id);
-                      // Reset qty if it exceeds the new variant's stock
                       if (quantity > variant.stock && variant.stock > 0) {
                         setQuantity(variant.stock);
                       }
@@ -776,8 +857,261 @@ const ProductDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
           </div>
         </div>
       )}
+
+      {/* COA Modal */}
+      <CoaModal
+        isOpen={showCoaModal}
+        onClose={() => setShowCoaModal(false)}
+        productId={product._id}
+        productTitle={product.title}
+        publicCertInfo={product.certificate || null}
+        isLoggedIn={isLoggedIn}
+      />
     </main>
   );
 };
 
 export default ProductDetailPage;
+
+/* ═══════════════════════════════════════════════════════════
+ *  COA MODAL — Logged-in users see full doc; others get login prompt
+ * ═══════════════════════════════════════════════════════════ */
+
+const CoaModal = ({
+  isOpen,
+  onClose,
+  productId,
+  productTitle,
+  publicCertInfo,
+  isLoggedIn,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  productId: string;
+  productTitle: string;
+  publicCertInfo: IProductCertificatePublic | null;
+  isLoggedIn: boolean;
+}) => {
+  const router = useRouter();
+
+  // Only fetch when modal is open AND user is logged in
+  const { data, isLoading, isError, error } = useGetProductCertificateQuery(
+    productId,
+    {
+      skip: !isOpen || !isLoggedIn,
+    },
+  );
+
+  const certificate = data?.data?.certificate;
+  console.log(data);
+
+  const formatDate = (date?: string) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="border-b border-gray-200 p-4 flex justify-between items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck size={18} className="text-emerald-600" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Certificate of Analysis
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500 truncate">{productTitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 cursor-pointer flex-shrink-0"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          {/* CASE 1: Not logged in */}
+          {!isLoggedIn && (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <Lock size={28} className="text-gray-500" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Log in to view this Certificate
+              </h4>
+              <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+                Certificates of Analysis are available to registered customers.
+                Log in or create a free account to view independent lab results.
+              </p>
+
+              {publicCertInfo && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 text-left max-w-sm mx-auto">
+                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">
+                    Certificate Info
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    {publicCertInfo.batchNumber && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Hash size={12} className="text-gray-400" />
+                        <span className="text-gray-500">Batch:</span>
+                        <span className="font-mono font-semibold">
+                          {publicCertInfo.batchNumber}
+                        </span>
+                      </div>
+                    )}
+                    {publicCertInfo.testDate && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Calendar size={12} className="text-gray-400" />
+                        <span className="text-gray-500">Tested:</span>
+                        <span className="font-semibold">
+                          {formatDate(publicCertInfo.testDate)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    onClose();
+                    router.push(`/login?redirect=/shop/product/${productId}`);
+                  }}
+                  className="px-5 py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: "#C70A24" }}
+                >
+                  Log in
+                </button>
+                <button
+                  onClick={() => {
+                    onClose();
+                    router.push("/register");
+                  }}
+                  className="px-5 py-2.5 rounded-lg text-gray-700 border border-gray-300 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Create account
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* CASE 2: Loading */}
+          {isLoggedIn && isLoading && (
+            <div className="py-16 flex flex-col items-center justify-center gap-3">
+              <Loader2 size={32} className="animate-spin text-gray-400" />
+              <p className="text-sm text-gray-500">Loading certificate...</p>
+            </div>
+          )}
+
+          {/* CASE 3: Error */}
+          {isLoggedIn && isError && (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <X size={28} className="text-red-500" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Could not load certificate
+              </h4>
+              <p className="text-sm text-gray-500">
+                {(error as { data?: { message?: string } })?.data?.message ||
+                  "Please try again in a moment."}
+              </p>
+            </div>
+          )}
+
+          {/* CASE 4: Logged-in + Loaded — show certificate */}
+          {isLoggedIn && certificate && certificate.url && (
+            <div className="flex flex-col">
+              {/* Metadata bar */}
+              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                {certificate.batchNumber && (
+                  <div>
+                    <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                      <Hash size={10} /> Batch
+                    </p>
+                    <p className="font-mono font-semibold text-gray-900">
+                      {certificate.batchNumber}
+                    </p>
+                  </div>
+                )}
+                {certificate.testDate && (
+                  <div>
+                    <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                      <Calendar size={10} /> Test Date
+                    </p>
+                    <p className="font-semibold text-gray-900">
+                      {formatDate(certificate.testDate)}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-gray-500 mb-0.5 flex items-center gap-1">
+                    <FileText size={10} /> Type
+                  </p>
+                  <p className="font-mono font-semibold text-gray-900 uppercase">
+                    {certificate.fileType}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-100 min-h-[400px] sm:min-h-[500px]">
+                {certificate.fileType === "pdf" ? (
+                  <iframe
+                    src={`${certificate.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="w-full h-[60vh]"
+                    title="Certificate of Analysis"
+                    // Block right-click → "Save as" menu
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
+                ) : (
+                  <div className="p-4 flex items-center justify-center min-h-[60vh] relative">
+                    <Image
+                      src={certificate.url}
+                      alt="Certificate of Analysis"
+                      width={800}
+                      height={1100}
+                      className="max-w-full max-h-[60vh] w-auto h-auto object-contain rounded"
+                      unoptimized
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-gray-200 px-4 py-3 flex items-center justify-between bg-white text-xs text-gray-500">
+                <p className="flex items-center gap-1.5">
+                  <ShieldCheck size={12} className="text-emerald-600" />
+                  Independently verified by third-party laboratory
+                </p>
+                <button
+                  onClick={onClose}
+                  className="font-semibold text-gray-700 hover:text-gray-900 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

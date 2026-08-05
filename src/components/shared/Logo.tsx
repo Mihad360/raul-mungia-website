@@ -1,18 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 
-// import logo from "../../../assets/Logo.png";
-import logo2 from "../../../assets/banner2.png";
+import logo from "../../../assets/Logo.png";
+// import logo2 from "../../../assets/banner2.png";
 
 const Logo = () => {
   return (
     <Link href="/" className="inline-block">
       <Image
-        // src={logo}
-        src={logo2}
+        src={logo}
+        // src={logo2}
         alt="Logo"
-        width={60}
-        height={60}
+        width={70}
+        height={70}
         priority
       />
     </Link>

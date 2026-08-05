@@ -32,6 +32,13 @@ interface IProduct {
   mainImage: string;
   images: string[];
   isActive: boolean;
+  certificate?: {
+    hasCertificate: boolean;
+    fileType?: "pdf" | "image";
+    batchNumber?: string;
+    testDate?: string;
+    uploadedAt?: string;
+  } | null;
 }
 
 const ITEMS_PER_PAGE = 9;
