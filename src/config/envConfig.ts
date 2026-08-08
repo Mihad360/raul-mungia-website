@@ -16,6 +16,12 @@ const envConfig = {
     ? process.env.NEXT_PUBLIC_LIVE_BASE_URL
     : process.env.NEXT_PUBLIC_LOCAL_BASE_URL,
 
+  payment: {
+    cashApp: process.env.NEXT_PUBLIC_CASHAPP_HANDLE ?? "$STXResearch1",
+    venmo: process.env.NEXT_PUBLIC_VENMO_HANDLE ?? "@STXRESEARCH",
+    zelle: process.env.NEXT_PUBLIC_ZELLE_PHONE ?? "361-222-4431",
+  },
+
   firebase: {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

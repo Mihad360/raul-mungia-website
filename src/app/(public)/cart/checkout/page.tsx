@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import envConfig from "@/config/envConfig";
+
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -1051,6 +1053,17 @@ const PaymentMethodRow = ({
 };
 
 const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
+  // Resolve handle: prefer API value, fall back to env config
+  const resolvedHandle =
+    method.handle ||
+    (method.type === "cashapp"
+      ? envConfig.payment.cashApp
+      : method.type === "venmo"
+        ? envConfig.payment.venmo
+        : method.type === "zelle"
+          ? envConfig.payment.zelle
+          : null);
+
   if (method.isAutomated) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -1082,11 +1095,11 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
           </p>
           <ol className="text-xs text-blue-800 space-y-1 leading-relaxed list-decimal list-inside">
             <li>Place your order — you&apos;ll get an order number.</li>
-            {method.handle && (
+            {resolvedHandle && (
               <li>
                 Send the total amount to{" "}
                 <span className="font-mono font-semibold bg-white px-1.5 py-0.5 rounded">
-                  {method.handle}
+                  {resolvedHandle}
                 </span>{" "}
                 on {method.displayName}.
               </li>
