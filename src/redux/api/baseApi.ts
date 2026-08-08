@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { envConfig } from "../../config/envConfig";
+import envConfig from "../../config/envConfig";
 import { axiosBaseQuery } from "@/lib/axios/axiosBaseQuery";
 
 export const baseApi = createApi({

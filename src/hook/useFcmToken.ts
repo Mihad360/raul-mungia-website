@@ -1,7 +1,7 @@
 "use client";
 
 import { getToken } from "firebase/messaging";
-import { envConfig } from "@/config/envConfig";
+import envConfig from "@/config/envConfig";
 import { getMessagingInstance } from "@/lib/firebase/firebase";
 
 /**

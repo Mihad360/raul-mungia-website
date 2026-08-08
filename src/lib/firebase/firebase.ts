@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getMessaging, Messaging, isSupported } from "firebase/messaging";
-import { envConfig } from "@/config/envConfig";
+import envConfig from "@/config/envConfig";
 
 const app: FirebaseApp =
   getApps().length === 0 ? initializeApp(envConfig.firebase) : getApps()[0];
