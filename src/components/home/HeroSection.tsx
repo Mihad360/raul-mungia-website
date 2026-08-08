@@ -31,12 +31,6 @@ const HeroSection = () => {
             >
               Shop Now
             </Link>
-            <Link
-              href="/resources/certifications"
-              className="px-7 py-3 rounded-lg border border-gray-300 text-gray-800 font-semibold text-sm hover:border-gray-400 transition-colors"
-            >
-              View Certification
-            </Link>
           </div>
         </div>
 

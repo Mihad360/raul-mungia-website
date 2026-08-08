@@ -124,7 +124,7 @@ const BlogPage = () => {
       </section>
 
       {/* CTA Banner */}
-      <CTABanner />
+      {/* <CTABanner /> */}
 
       {/* Blog Modal */}
       {showModal && selectedBlog && (

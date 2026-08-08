@@ -82,14 +82,6 @@ const Footer = () => {
                   FAQ
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/certifications"
-                  className="text-xs text-gray-400 hover:text-white transition-colors"
-                >
-                  Certifications
-                </Link>
-              </li>
             </ul>
           </div>
 
