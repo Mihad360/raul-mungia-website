@@ -25,7 +25,7 @@ interface ICartItem {
     mainImage: string;
     category?: { _id: string; name: string; description: string | null };
     categoryName?: string;
-  };
+  } | null;
   size: string;
   quantity: number;
   price: number;
@@ -318,12 +318,15 @@ const CartPage = () => {
                 <tbody>
                   {cartItems.map((item) => {
                     const isBusy = busyItemId === item._id;
+                    const product = item.product;
+                    const isUnavailable = !item.available || !product;
+
                     return (
                       <tr
                         key={item._id}
                         className={`border-b border-gray-100 transition-opacity ${
                           isBusy ? "opacity-50" : ""
-                        } ${!item.available ? "bg-red-50" : ""}`}
+                        } ${isUnavailable ? "bg-red-50" : ""}`}
                       >
                         <td className="py-4">
                           <div className="flex items-center gap-4">
@@ -336,26 +339,39 @@ const CartPage = () => {
                               <X size={18} />
                             </button>
                             <div className="w-14 h-14 bg-gray-100 rounded relative overflow-hidden flex-shrink-0">
-                              {item.product.mainImage && (
+                              {product?.mainImage ? (
                                 <Image
-                                  src={item.product.mainImage}
-                                  alt={item.product.title}
+                                  src={product.mainImage}
+                                  alt={product.title}
                                   fill
                                   className="object-contain p-1"
                                 />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ShoppingBag
+                                    size={18}
+                                    className="text-gray-300"
+                                  />
+                                </div>
                               )}
                             </div>
                             <div>
-                              <Link
-                                href={`/shop/product/${item.product._id}`}
-                                className="font-medium text-gray-900 hover:text-[#C70A24] transition-colors"
-                              >
-                                {item.product.title}
-                              </Link>
+                              {product ? (
+                                <Link
+                                  href={`/shop/product/${product._id}`}
+                                  className="font-medium text-gray-900 hover:text-[#C70A24] transition-colors"
+                                >
+                                  {product.title}
+                                </Link>
+                              ) : (
+                                <p className="font-medium text-gray-700">
+                                  Unavailable product
+                                </p>
+                              )}
                               <p className="text-xs text-gray-500">
                                 Size: {item.size}
                               </p>
-                              {!item.available && (
+                              {isUnavailable && (
                                 <p className="text-xs text-red-600 font-medium mt-1">
                                   Currently unavailable
                                 </p>
@@ -364,7 +380,7 @@ const CartPage = () => {
                           </div>
                         </td>
                         <td className="py-4 text-gray-900 font-medium">
-                          ${item.price.toFixed(2)}
+                          ${(item.price ?? 0).toFixed(2)}
                         </td>
                         <td className="py-4">
                           <div className="inline-flex items-center gap-2 border border-gray-200 rounded-lg px-2 py-1">
@@ -375,7 +391,9 @@ const CartPage = () => {
                                   item.quantity - 1,
                                 )
                               }
-                              disabled={isBusy || item.quantity <= 1}
+                              disabled={
+                                isBusy || item.quantity <= 1 || isUnavailable
+                              }
                               className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               aria-label="Decrease quantity"
                             >
@@ -391,7 +409,7 @@ const CartPage = () => {
                                   item.quantity + 1,
                                 )
                               }
-                              disabled={isBusy}
+                              disabled={isBusy || isUnavailable}
                               className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               aria-label="Increase quantity"
                             >
@@ -403,7 +421,7 @@ const CartPage = () => {
                           className="py-4 font-semibold"
                           style={{ color: "#C70A24" }}
                         >
-                          ${item.lineTotal.toFixed(2)}
+                          ${(item.lineTotal ?? 0).toFixed(2)}
                         </td>
                       </tr>
                     );

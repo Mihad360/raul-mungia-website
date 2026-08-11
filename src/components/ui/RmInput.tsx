@@ -46,6 +46,10 @@ const RmInput = ({
 }: TInputProps) => {
   const { control } = useFormContext();
 
+  const inputClassName = [className, "text-gray-900 placeholder:text-gray-400"]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Controller
       name={name}
@@ -64,7 +68,7 @@ const RmInput = ({
               id={name}
               disabled={disabled}
               size={size}
-              className={className}
+              className={inputClassName}
               style={style}
               placeholder={placeholder || (label ? `Enter ${label}` : "")}
               readOnly={readOnly}
@@ -74,7 +78,7 @@ const RmInput = ({
               {...field}
               id={name}
               disabled={disabled}
-              className={className}
+              className={inputClassName}
               style={style}
               placeholder={placeholder || (label ? `Enter ${label}` : "")}
               readOnly={readOnly}
@@ -88,7 +92,7 @@ const RmInput = ({
               readOnly={readOnly}
               disabled={disabled}
               size={size}
-              className={className}
+              className={inputClassName}
               style={style}
               placeholder={placeholder || (label ? `Enter ${label}` : "")}
               allowClear={allowClear}

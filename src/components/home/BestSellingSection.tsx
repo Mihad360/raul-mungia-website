@@ -142,7 +142,9 @@ const BestSellingSection = () => {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                   style={
-                    activeCategory === cat ? { backgroundColor: "#C70A24" } : {}
+                    activeCategory === cat
+                      ? { backgroundColor: "#C70A24", color: "#ffffff" }
+                      : undefined
                   }
                 >
                   {cat}

@@ -110,7 +110,7 @@ const SearchDrawer = ({ isOpen, onClose }: SearchDrawerProps) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search for BPC-157, GHK-CU, peptides..."
-              className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#C70A24] focus:ring-2 focus:ring-[#C70A24]/10 text-sm transition-all"
+              className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#C70A24] focus:ring-2 focus:ring-[#C70A24]/10 text-sm text-gray-900 placeholder:text-gray-400 transition-all"
             />
             <button
               type="button"

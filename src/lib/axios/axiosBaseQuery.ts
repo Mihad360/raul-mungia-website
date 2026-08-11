@@ -19,14 +19,24 @@ export const axiosBaseQuery =
     unknown,
     unknown
   > =>
-  async ({ url, method, data, params, headers }) => {
+  async ({ url, method, data, params, headers, contentType }) => {
+    const isFormData =
+      typeof FormData !== "undefined" && data instanceof FormData;
+
     try {
       const result = await axiosInstance({
         url: baseUrl + url,
         method,
         data,
         params,
-        headers,
+        headers: {
+          ...headers,
+          ...(isFormData
+            ? { "Content-Type": undefined }
+            : contentType
+              ? { "Content-Type": contentType }
+              : {}),
+        },
       });
       // console.log(result);
       return { data: result.data };

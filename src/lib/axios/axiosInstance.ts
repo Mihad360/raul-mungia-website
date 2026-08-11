@@ -13,6 +13,12 @@ axiosInstance.defaults.withCredentials = true;
 // ─── Request interceptor — attach JWT from cookie ──────────
 axiosInstance.interceptors.request.use(
   (config) => {
+    // FormData must be multipart with an auto boundary. The default
+    // application/json Content-Type prevents multer from seeing files.
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      config.headers.delete("Content-Type");
+    }
+
     // Read from cookie (works on client-side only)
     const accessToken =
       typeof window !== "undefined"

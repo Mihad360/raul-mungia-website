@@ -316,9 +316,13 @@ const ProductFormModal = ({
   const [mainImagePreview, setMainImagePreview] = useState<string>(
     product?.mainImage || "",
   );
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(
+  // Existing Cloudinary URLs (edit mode) kept separate from newly picked Files
+  const [existingGalleryUrls, setExistingGalleryUrls] = useState<string[]>(
     product?.images || [],
   );
+  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);
+
+  const galleryPreviews = [...existingGalleryUrls, ...newGalleryPreviews];
 
   useEffect(() => {
     if (isOpen) {
@@ -331,7 +335,8 @@ const ProductFormModal = ({
       setMainImageFile(null);
       setGalleryFiles([]);
       setMainImagePreview(product?.mainImage || "");
-      setGalleryPreviews(product?.images || []);
+      setExistingGalleryUrls(product?.images || []);
+      setNewGalleryPreviews([]);
     }
   }, [isOpen, product]);
 
@@ -339,7 +344,7 @@ const ProductFormModal = ({
     return () => {
       if (mainImagePreview.startsWith("blob:"))
         URL.revokeObjectURL(mainImagePreview);
-      galleryPreviews.forEach((url) => {
+      newGalleryPreviews.forEach((url) => {
         if (url.startsWith("blob:")) URL.revokeObjectURL(url);
       });
     };
@@ -382,16 +387,22 @@ const ProductFormModal = ({
     if (!files.length) return;
     const newPreviews = files.map((f) => URL.createObjectURL(f));
     setGalleryFiles((prev) => [...prev, ...files]);
-    setGalleryPreviews((prev) => [...prev, ...newPreviews]);
+    setNewGalleryPreviews((prev) => [...prev, ...newPreviews]);
   };
 
   const handleRemoveGalleryImage = (idx: number) => {
-    setGalleryPreviews((prev) => {
-      const url = prev[idx];
-      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-      return prev.filter((_, i) => i !== idx);
+    if (idx < existingGalleryUrls.length) {
+      setExistingGalleryUrls((prev) => prev.filter((_, i) => i !== idx));
+      return;
+    }
+
+    const newIdx = idx - existingGalleryUrls.length;
+    setNewGalleryPreviews((prev) => {
+      const url = prev[newIdx];
+      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== newIdx);
     });
-    setGalleryFiles((prev) => prev.filter((_, i) => i !== idx));
+    setGalleryFiles((prev) => prev.filter((_, i) => i !== newIdx));
   };
 
   const handleSubmit = async (data: any) => {
@@ -412,7 +423,18 @@ const ProductFormModal = ({
       return;
     }
 
+    if (!data.category) {
+      message.error("Please select a category");
+      return;
+    }
+
+    const originalGallery = product?.images || [];
+    const removeImages = originalGallery.filter(
+      (url) => !existingGalleryUrls.includes(url),
+    );
+
     const formData = new FormData();
+
     formData.append(
       "data",
       JSON.stringify({
@@ -429,6 +451,7 @@ const ProductFormModal = ({
           stock: Number(v.stock),
           weight: Number(v.weight) || 0.5,
         })),
+        ...(isEditing && removeImages.length > 0 ? { removeImages } : {}),
       }),
     );
 
@@ -447,6 +470,20 @@ const ProductFormModal = ({
     typeof product?.category === "object"
       ? product.category._id
       : (product?.category as string) || "";
+
+  const formDefaultValues = useMemo(
+    () => ({
+      title: product?.title || "",
+      category: currentCategoryId,
+      description: product?.description || "",
+      additionalInformation: product?.additionalInformation || "",
+      compliance: product?.compliance || "",
+      lowStockThreshold: product?.lowStockThreshold || 20,
+    }),
+    // Reset form fields only when opening for a different product / create flow
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isOpen, product?._id],
+  );
 
   return (
     <RmModal
@@ -480,16 +517,10 @@ const ProductFormModal = ({
       }
     >
       <RmForm
+        key={`${isOpen}-${product?._id ?? "new"}`}
         id="product-form"
         onSubmit={handleSubmit}
-        defaultValues={{
-          title: product?.title || "",
-          category: currentCategoryId,
-          description: product?.description || "",
-          additionalInformation: product?.additionalInformation || "",
-          compliance: product?.compliance || "",
-          lowStockThreshold: product?.lowStockThreshold || 20,
-        }}
+        defaultValues={formDefaultValues}
       >
         <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2">
           {/* Basic Information */}
@@ -1601,7 +1632,7 @@ export default function ProductsPage() {
           placeholder="Search products by title, code, or description..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all bg-gray-50"
         />
       </div>
 

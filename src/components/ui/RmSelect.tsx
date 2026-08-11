@@ -64,6 +64,16 @@ const RmSelect = ({
         >
           <Select
             {...field}
+            value={
+              mode
+                ? field.value
+                : field.value === "" || field.value == null
+                  ? undefined
+                  : field.value
+            }
+            onChange={(value) =>
+              field.onChange(value ?? (mode ? [] : ""))
+            }
             disabled={disabled}
             placeholder={placeholder || `Select ${label || "option"}`}
             options={options}

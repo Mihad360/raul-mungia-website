@@ -1,7 +1,7 @@
 // RmForm.tsx
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { Form, ConfigProvider } from "antd";
 import {
   FormProvider,
@@ -42,15 +42,16 @@ const RmForm = <T extends FieldValues = FieldValues>({
 
   const { reset } = methods;
 
-  const resetForm = useCallback(() => {
-    if (defaultValues) {
-      reset(defaultValues);
-    }
-  }, [defaultValues, reset]);
-
+  // Only reset when defaultValues *content* changes — not when parents
+  // pass a fresh inline object on every re-render (e.g. variant editors).
+  const defaultsKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    resetForm();
-  }, [resetForm]);
+    if (!defaultValues) return;
+    const key = JSON.stringify(defaultValues);
+    if (defaultsKeyRef.current === key) return;
+    defaultsKeyRef.current = key;
+    reset(defaultValues);
+  }, [defaultValues, reset]);
 
   const handleSubmit = methods.handleSubmit(
     onSubmit as SubmitHandler<FieldValues>,

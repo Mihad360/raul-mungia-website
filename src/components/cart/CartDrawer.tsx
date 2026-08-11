@@ -25,7 +25,7 @@ interface ICartItem {
     _id: string;
     title: string;
     mainImage: string;
-  };
+  } | null;
   size: string;
   quantity: number;
   price: number;
@@ -166,48 +166,66 @@ const CartDrawer = ({ isOpen, onClose }: TCartDrawerProps) => {
             <div className="p-4 space-y-3">
               {items.map((item) => {
                 const isBusy = busyItemId === item._id;
+                const product = item.product;
+                const isUnavailable = !item.available || !product;
+                const productHref = product
+                  ? `/shop/product/${product._id}`
+                  : "#";
+
                 return (
                   <div
                     key={item._id}
                     className={`flex gap-3 p-3 rounded-lg border transition-opacity ${
                       isBusy ? "opacity-50 pointer-events-none" : ""
                     } ${
-                      !item.available
+                      isUnavailable
                         ? "border-red-200 bg-red-50"
                         : "border-gray-100"
                     }`}
                   >
                     {/* Image */}
-                    <Link
-                      href={`/shop/product/${item.product._id}`}
-                      onClick={onClose}
-                      className="w-16 h-16 bg-gray-50 rounded relative overflow-hidden flex-shrink-0"
-                    >
-                      {item.product.mainImage && (
-                        <Image
-                          src={item.product.mainImage}
-                          alt={item.product.title}
-                          fill
-                          className="object-contain p-1"
-                        />
-                      )}
-                    </Link>
+                    {product ? (
+                      <Link
+                        href={productHref}
+                        onClick={onClose}
+                        className="w-16 h-16 bg-gray-50 rounded relative overflow-hidden flex-shrink-0"
+                      >
+                        {product.mainImage && (
+                          <Image
+                            src={product.mainImage}
+                            alt={product.title}
+                            fill
+                            className="object-contain p-1"
+                          />
+                        )}
+                      </Link>
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                        <ShoppingBag size={20} className="text-gray-300" />
+                      </div>
+                    )}
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <Link
-                            href={`/shop/product/${item.product._id}`}
-                            onClick={onClose}
-                            className="text-sm font-semibold text-gray-900 hover:text-[#C70A24] transition-colors line-clamp-1"
-                          >
-                            {item.product.title}
-                          </Link>
+                          {product ? (
+                            <Link
+                              href={productHref}
+                              onClick={onClose}
+                              className="text-sm font-semibold text-gray-900 hover:text-[#C70A24] transition-colors line-clamp-1"
+                            >
+                              {product.title}
+                            </Link>
+                          ) : (
+                            <p className="text-sm font-semibold text-gray-700 line-clamp-1">
+                              Unavailable product
+                            </p>
+                          )}
                           <p className="text-xs text-gray-500">
                             Size: {item.size}
                           </p>
-                          {!item.available && (
+                          {isUnavailable && (
                             <p className="text-xs text-red-600 font-medium mt-1">
                               Unavailable
                             </p>
@@ -230,7 +248,9 @@ const CartDrawer = ({ isOpen, onClose }: TCartDrawerProps) => {
                             onClick={() =>
                               handleQuantityChange(item._id, item.quantity - 1)
                             }
-                            disabled={isBusy || item.quantity <= 1}
+                            disabled={
+                              isBusy || item.quantity <= 1 || isUnavailable
+                            }
                             className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed p-0.5"
                             aria-label="Decrease"
                           >
@@ -243,7 +263,7 @@ const CartDrawer = ({ isOpen, onClose }: TCartDrawerProps) => {
                             onClick={() =>
                               handleQuantityChange(item._id, item.quantity + 1)
                             }
-                            disabled={isBusy}
+                            disabled={isBusy || isUnavailable}
                             className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed p-0.5"
                             aria-label="Increase"
                           >
@@ -256,7 +276,7 @@ const CartDrawer = ({ isOpen, onClose }: TCartDrawerProps) => {
                           className="text-sm font-bold"
                           style={{ color: "#C70A24" }}
                         >
-                          ${item.lineTotal.toFixed(2)}
+                          ${(item.lineTotal ?? 0).toFixed(2)}
                         </p>
                       </div>
                     </div>

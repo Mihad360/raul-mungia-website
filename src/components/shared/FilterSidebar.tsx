@@ -22,7 +22,6 @@ interface ICategory {
 const FilterSidebar = ({ filters, onFiltersChange }: TFilterSidebarProps) => {
   const { data: categoriesData, isLoading: catLoading } =
     useGetAllCategoriesQuery(undefined);
-  console.log(categoriesData);
   const categories: ICategory[] = categoriesData?.data || [];
 
   const handleCategoryClick = (categoryName: string) => {
@@ -98,14 +97,14 @@ const FilterSidebar = ({ filters, onFiltersChange }: TFilterSidebarProps) => {
                 key={cat._id}
                 onClick={() => handleCategoryClick(cat.name)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  filters.category === cat._id
+                  filters.category === cat.name
                     ? "text-white"
                     : "text-gray-600 bg-gray-100 hover:bg-gray-200"
                 }`}
                 style={
                   filters.category === cat.name
-                    ? { backgroundColor: "#C70A24" }
-                    : {}
+                    ? { backgroundColor: "#C70A24", color: "#ffffff" }
+                    : undefined
                 }
               >
                 {cat.name}
