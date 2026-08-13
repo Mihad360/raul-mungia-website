@@ -12,8 +12,9 @@ const Footer = () => {
           <div>
             <Logo />
             <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-              STX Research is a science-driven supplier of research-grade peptides,
-              committed to precision, transparency, and quality assurance.
+              STX Research is a science-driven supplier of research-grade
+              peptides, committed to precision, transparency, and quality
+              assurance.
             </p>
             {/* Social icons */}
             <div className="flex items-center gap-3 mt-4">
@@ -52,7 +53,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/about"
+                  href="/resources/aboutus"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   About Us
@@ -68,7 +69,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/blog"
+                  href="/resources/blog"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Blog
@@ -76,7 +77,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/faq"
+                  href="/resources/faq"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   FAQ
@@ -93,7 +94,7 @@ const Footer = () => {
             <ul className="flex flex-col gap-2">
               <li>
                 <Link
-                  href="/terms"
+                  href="/resources/terms"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Terms & Conditions
@@ -101,7 +102,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/disclaimer"
+                  href="/resources/disclaimer"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Disclaimer
@@ -109,7 +110,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/shipping"
+                  href="/resources/shipping-policy"
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Shipping Policy
@@ -127,19 +128,19 @@ const Footer = () => {
               <li className="text-xs text-gray-400">
                 <span className="block">📧</span>
                 <a
-                  href="mailto:support@example.com"
+                  href="mailto:support@stxresearch.com"
                   className="hover:text-white transition-colors"
                 >
-                  support@example.com
+                  support@stxresearch.com
                 </a>
               </li>
               <li className="text-xs text-gray-400">
                 <span className="block">📞</span>
                 <a
-                  href="tel:+17849443124"
+                  href="tel:+13612224431"
                   className="hover:text-white transition-colors"
                 >
-                  7849-3443-124
+                  361-222-4431
                 </a>
               </li>
             </ul>
@@ -149,7 +150,7 @@ const Footer = () => {
         {/* Divider */}
         <div className="border-t border-gray-800 pt-6">
           <p className="text-xs text-gray-500 text-center">
-            2026 Axonpeptides. All right reserved
+            © 2026 STX Research. All rights reserved.
           </p>
         </div>
       </div>

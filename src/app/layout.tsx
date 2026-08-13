@@ -15,9 +15,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "STX Research — Premium Research Peptides",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_LIVE_BASE_URL ||
+      process.env.NEXT_PUBLIC_LOCAL_BASE_URL ||
+      "https://www.stxresearch.com",
+  ),
+  title: {
+    default: "STX Research — Premium Research Peptides",
+    template: "%s | STX Research",
+  },
   description:
-    "Premium research peptides for laboratory use. Verified purity, fast shipping.",
+    "STX Research — premium research peptides for laboratory use. Verified purity, fast shipping.",
+  applicationName: "STX Research",
+  openGraph: {
+    title: "STX Research — Premium Research Peptides",
+    description:
+      "Premium research peptides for laboratory use. Verified purity, fast shipping.",
+    siteName: "STX Research",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "STX Research — Premium Research Peptides",
+    description:
+      "Premium research peptides for laboratory use. Verified purity, fast shipping.",
+  },
 };
 
 export default function RootLayout({

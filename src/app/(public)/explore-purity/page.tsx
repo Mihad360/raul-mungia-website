@@ -4,24 +4,24 @@ import Link from "next/link";
 const ExplorePurityPage = () => {
   const sections = [
     {
-      title: "Axonpeptide Independent Verification & Purity Guarantee",
+      title: "STX Research Independent Verification & Purity Guarantee",
       content:
-        "At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
+        "At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
     },
     {
-      title: "Axonpeptide Independent Verification & Purity Guarantee",
+      title: "STX Research Independent Verification & Purity Guarantee",
       content:
-        "At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
+        "At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
     },
     {
-      title: "Axonpeptide Independent Verification & Purity Guarantee",
+      title: "STX Research Independent Verification & Purity Guarantee",
       content:
-        "At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community. At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
+        "At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community. At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
     },
     {
-      title: "Axonpeptide Independent Verification & Purity Guarantee",
+      title: "STX Research Independent Verification & Purity Guarantee",
       content:
-        "At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
+        "At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.",
     },
   ];
 

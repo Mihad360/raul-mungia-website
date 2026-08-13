@@ -17,15 +17,15 @@ export default async function BlogDetailPage({ params }: PageProps) {
     id: parseInt(id),
     title: `Understanding Peptide Purity, Stability, and Consistency - Post ${id}`,
     date: "25 May, 2026 10:30 AM",
-    content: `Axonpeptide Independent Verification & Purity Guarantee
+    content: `STX Research Independent Verification & Purity Guarantee
 
-At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.
+At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.
 
 This is blog post number ${id} with unique content that changes based on the ID parameter.
 
-Axonpeptide Independent Verification & Purity Guarantee
+STX Research Independent Verification & Purity Guarantee
 
-At Axon Peptide, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.`,
+At STX Research, we hold our research materials to the highest analytical standards. While every batch is internally tested and issued a Certificate of Analysis (COA), we recognize the importance of independent, third-party validation in the scientific community.`,
   };
 
   return (
@@ -61,7 +61,7 @@ At Axon Peptide, we hold our research materials to the highest analytical standa
         {/* Back to blog */}
         <div className="mt-12 pt-8 border-t border-gray-200">
           <Link
-            href="/blog"
+            href="/resources/blog"
             className="text-sm font-medium hover:underline cursor-pointer"
             style={{ color: "#C70A24" }}
           >

@@ -1,0 +1,85 @@
+/* eslint-disable react/no-unescaped-entities */
+"use client";
+
+import Link from "next/link";
+import { Loader } from "@/components/shared/Loader";
+import { useGetAllTermsQuery } from "@/redux/api/settingsApi";
+
+interface ITerms {
+  _id: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const TermsPage = () => {
+  const { data: termsData, isLoading, isError } = useGetAllTermsQuery(undefined);
+  const terms: ITerms | undefined = Array.isArray(termsData?.data)
+    ? termsData?.data?.[0]
+    : termsData?.data;
+
+  return (
+    <main className="min-h-screen bg-white">
+      <section className="max-w-7xl mx-auto px-6 py-12 text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Terms & Conditions
+        </h1>
+        <p className="text-sm text-gray-500">
+          <Link href="/" className="hover:text-gray-700">
+            Home
+          </Link>{" "}
+          / Terms & Conditions
+        </p>
+      </section>
+
+      <section className="max-w-4xl mx-auto px-6 py-12">
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Loader size="lg" />
+          </div>
+        ) : isError || !terms?.description ? (
+          <div className="text-center space-y-4 py-20">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Terms & Conditions
+            </h2>
+            <p className="text-sm text-gray-500">
+              Content is being updated. Please check back soon.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div
+              className="space-y-4 text-gray-600 leading-relaxed
+                [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mt-6 [&_h1]:mb-3
+                [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-3
+                [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-900 [&_h3]:mt-5 [&_h3]:mb-2
+                [&_h4]:text-lg [&_h4]:font-semibold [&_h4]:text-gray-900 [&_h4]:mt-4 [&_h4]:mb-2
+                [&_p]:text-base [&_p]:leading-relaxed [&_p]:text-gray-600 [&_p]:my-3
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ul]:my-4 [&_ul]:text-base
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_ol]:my-4 [&_ol]:text-base
+                [&_li]:text-gray-600 [&_li]:leading-relaxed
+                [&_a]:text-[#C70A24] [&_a]:underline hover:[&_a]:opacity-80
+                [&_strong]:font-semibold [&_strong]:text-gray-900
+                [&_em]:italic
+                [&_blockquote]:border-l-4 [&_blockquote]:border-[#C70A24] [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-500 [&_blockquote]:my-4
+                [&_img]:rounded-lg [&_img]:my-4 [&_img]:mx-auto"
+              dangerouslySetInnerHTML={{ __html: terms.description }}
+            />
+
+            <div className="flex justify-center mt-10">
+              <Link
+                href="/contact"
+                className="px-6 py-3 rounded-lg text-white text-sm font-semibold transition-opacity hover:opacity-90 active:opacity-80 cursor-pointer"
+                style={{ backgroundColor: "#C70A24" }}
+              >
+                Contact Support →
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
+    </main>
+  );
+};
+
+export default TermsPage;

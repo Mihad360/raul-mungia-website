@@ -1344,7 +1344,7 @@ const OrderSummary = ({
         <span className="text-xs text-gray-600 leading-relaxed">
           I have read and agree to the{" "}
           <Link
-            href="/terms"
+            href="/resources/terms"
             className="font-medium hover:underline cursor-pointer"
             style={{ color: "#C70A24" }}
           >
