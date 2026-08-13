@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Puretek Peptides — Premium Research Peptides",
+  title: "STX Research — Premium Research Peptides",
   description:
     "Premium research peptides for laboratory use. Verified purity, fast shipping.",
 };

@@ -12,7 +12,7 @@ const Footer = () => {
           <div>
             <Logo />
             <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-              Puretek is a science-driven supplier of research-grade peptides,
+              STX Research is a science-driven supplier of research-grade peptides,
               committed to precision, transparency, and quality assurance.
             </p>
             {/* Social icons */}

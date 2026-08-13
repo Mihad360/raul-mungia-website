@@ -125,7 +125,7 @@ const US_STATES = [
 
 // ⚠️ Replace these with values from admin settings or env later
 const PICKUP_LOCATION = {
-  name: "Puratek Research Office",
+  name: "STX Research Office",
   address: "Contact us for the exact pickup address after placing your order",
   hours: "Mon–Fri, 9:00 AM – 6:00 PM CST",
 };

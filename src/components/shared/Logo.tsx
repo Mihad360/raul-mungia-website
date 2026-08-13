@@ -10,7 +10,7 @@ const Logo = () => {
       <Image
         src={logo}
         // src={logo2}
-        alt="Logo"
+        alt="STX Research"
         width={70}
         height={70}
         priority
