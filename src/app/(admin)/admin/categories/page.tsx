@@ -195,7 +195,9 @@ export default function CategoriesPage() {
     useDeleteCategoryMutation();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const categories: Category[] = categoriesData?.data || [];
+  const categories: Category[] = Array.isArray(categoriesData?.data)
+    ? (categoriesData.data as Category[])
+    : [];
 
   // ─── KPI Calculations ────────────────────────────────────────
   const kpis = useMemo(() => {

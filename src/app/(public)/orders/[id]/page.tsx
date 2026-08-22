@@ -31,7 +31,11 @@ import {
   formatDateShort,
   canCancelOrder,
   FulfillmentBadge,
+  getPaymentAlertType,
 } from "@/utils/orderHelpers";
+import ManualOrderPaymentCard, {
+  resolvePaymentHandle,
+} from "@/components/orders/ManualOrderPaymentCard";
 
 export default function OrderDetailPage({
   params,
@@ -84,7 +88,7 @@ export default function OrderDetailPage({
           Order not found
         </h2>
         <Link
-          href="/account/orders"
+          href="/orders"
           className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-lg text-white font-semibold"
           style={{ backgroundColor: "#C70A24" }}
         >
@@ -95,14 +99,13 @@ export default function OrderDetailPage({
   }
 
   const isCancelEligible = canCancelOrder(order.status);
-  const isManualPaymentPending =
-    !order.paymentMethod?.isAutomated && order.paymentStatus === "unpaid";
+  const paymentAlert = getPaymentAlertType(order);
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
       {/* Back link */}
       <Link
-        href="/account/orders"
+        href="/orders"
         className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4 transition-colors"
       >
         <ArrowLeft size={16} />
@@ -151,36 +154,14 @@ export default function OrderDetailPage({
         </div>
       )}
 
-      {/* Manual payment pending banner */}
-      {isManualPaymentPending && (
-        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-5 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle
-              size={20}
-              className="text-yellow-700 flex-shrink-0 mt-0.5"
-            />
-            <div className="flex-1">
-              <h3 className="font-bold text-yellow-900 mb-1">
-                Payment Pending
-              </h3>
-              <p className="text-sm text-yellow-800 mb-3">
-                Please send <strong>${order.total?.toFixed(2)}</strong> via{" "}
-                {order.paymentMethod.displayName} to{" "}
-                <span className="font-mono font-bold">
-                  {order.paymentMethod.handle}
-                </span>{" "}
-                with note{" "}
-                <span className="font-mono font-bold">{order.orderNumber}</span>
-                .
-              </p>
-              <button
-                onClick={() => copyText(order.paymentMethod.handle, "Handle")}
-                className="text-xs font-semibold text-yellow-900 underline hover:no-underline cursor-pointer"
-              >
-                Copy handle
-              </button>
-            </div>
-          </div>
+      {/* Manual payment details — shown until paid */}
+      {paymentAlert === "needs_payment" && (
+        <div className="mb-6">
+          <ManualOrderPaymentCard
+            orderNumber={order.orderNumber}
+            total={order.total}
+            paymentMethod={order.paymentMethod}
+          />
         </div>
       )}
 
@@ -381,9 +362,16 @@ export default function OrderDetailPage({
               <p className="text-xs text-gray-500 capitalize">
                 {order.paymentMethod?.type}
               </p>
-              {order.paymentMethod?.handle && (
+              {(resolvePaymentHandle(order.paymentMethod) ||
+                order.paymentMethod?.handle) && (
                 <p className="text-xs font-mono text-gray-700 mt-2">
-                  {order.paymentMethod.handle}
+                  {resolvePaymentHandle(order.paymentMethod) ||
+                    order.paymentMethod?.handle}
+                </p>
+              )}
+              {paymentAlert === "needs_payment" && (
+                <p className="text-[11px] text-[#C70A24] font-semibold mt-2">
+                  Payment details are shown above — pay anytime from this page.
                 </p>
               )}
             </div>

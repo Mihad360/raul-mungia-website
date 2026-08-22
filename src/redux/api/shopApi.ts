@@ -1,4 +1,5 @@
 import { baseApi } from "./baseApi";
+import { normalizeListResponse } from "@/utils/normalizeListResponse";
 
 const shopApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -20,10 +21,7 @@ const shopApi = baseApi.injectEndpoints({
           params,
         };
       },
-      transformResponse: (response) => ({
-        data: response.data,
-        meta: response.meta,
-      }),
+      transformResponse: (response) => normalizeListResponse(response),
       providesTags: ["product"],
     }),
 

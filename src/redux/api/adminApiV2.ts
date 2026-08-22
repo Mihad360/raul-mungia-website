@@ -44,7 +44,7 @@ const adminApiV2 = baseApi.injectEndpoints({
         body,
       }: {
         id: string;
-        body: { cancellationReason: string };
+        body: { reason: string };
       }) => ({
         url: `/admin/order/${id}/cancel`,
         method: "PATCH",
@@ -59,7 +59,7 @@ const adminApiV2 = baseApi.injectEndpoints({
         body,
       }: {
         id: string;
-        body: { amount?: number; reason: string };
+        body: { amount?: number; refundReason: string };
       }) => ({
         url: `/admin/order/${id}/refund`,
         method: "PATCH",

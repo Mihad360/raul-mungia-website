@@ -51,7 +51,9 @@ const SearchDrawer = ({ isOpen, onClose }: SearchDrawerProps) => {
     { skip: debouncedTerm.length < 2 },
   );
 
-  const products: Product[] = data?.data || [];
+  const products: Product[] = Array.isArray(data?.data)
+    ? (data.data as Product[])
+    : [];
   const totalResults = data?.meta?.total || 0;
 
   // Reset on close

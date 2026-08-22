@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import FilterSidebar from "@/components/shared/FilterSidebar";
 import ProductCard from "@/components/ui/ProductCard";
@@ -43,8 +43,11 @@ interface IProduct {
 
 const ITEMS_PER_PAGE = 9;
 
-const ShopPage = () => {
+const ShopPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSearchTerm = (searchParams.get("searchTerm") || "").trim();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("default");
   const [filters, setFilters] = useState({
@@ -70,12 +73,15 @@ const ShopPage = () => {
     categoryName: filters.category || undefined,
     minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
     maxPrice: filters.maxPrice < 500 ? filters.maxPrice : undefined,
+    searchTerm: urlSearchTerm || undefined,
   };
 
   const { data, isLoading, isFetching, isError } =
     useGetAllProductsQuery(queryArgs);
 
-  const products: IProduct[] = data?.data || [];
+  const products: IProduct[] = Array.isArray(data?.data)
+    ? (data.data as IProduct[])
+    : [];
   const meta = data?.meta || {
     page: 1,
     limit: ITEMS_PER_PAGE,
@@ -149,6 +155,7 @@ const ShopPage = () => {
               ) : meta.total > 0 ? (
                 <>
                   Showing {showingFrom}–{showingTo} of {meta.total} results
+                  {urlSearchTerm ? <> for &quot;{urlSearchTerm}&quot;</> : null}
                 </>
               ) : (
                 "No products available"
@@ -171,13 +178,13 @@ const ShopPage = () => {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 pb-14">
-        <div className="flex flex-col md:flex-row gap-8">
+        <div className="flex flex-col md:flex-row md:items-start gap-8">
           <FilterSidebar
             filters={filters}
             onFiltersChange={handleFiltersChange}
           />
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {isLoading && (
               <div className="flex justify-center items-center py-20">
                 <Loader size="lg" />
@@ -244,5 +251,17 @@ const ShopPage = () => {
     </main>
   );
 };
+
+const ShopPage = () => (
+  <Suspense
+    fallback={
+      <main className="min-h-screen bg-white flex justify-center items-center py-20">
+        <Loader size="lg" />
+      </main>
+    }
+  >
+    <ShopPageContent />
+  </Suspense>
+);
 
 export default ShopPage;

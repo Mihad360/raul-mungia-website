@@ -32,18 +32,21 @@ import {
   OrderStatus,
   FulfillmentBadge,
 } from "@/utils/orderHelpers";
+import ManualOrderPaymentCard from "@/components/orders/ManualOrderPaymentCard";
 
 const STATUS_FILTERS: (
   | { value: ""; label: string }
   | { value: OrderStatus; label: string }
 )[] = [
   { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
   { value: "awaiting_payment", label: "Awaiting Payment" },
-  { value: "paid", label: "Paid" },
   { value: "processing", label: "Processing" },
+  { value: "ready_for_pickup", label: "Ready for Pickup" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "refunded", label: "Refunded" },
 ];
 
 export default function MyOrdersPage() {
@@ -352,84 +355,19 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
 
       {/* ─── PAYMENT ALERTS ──────────────────────────────────── */}
 
-      {/* Needs Payment — customer must send money */}
+      {/* Needs payment — show full Venmo / Cash App / Zelle details */}
       {alertType === "needs_payment" && (
-        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
-          <div className="flex items-start gap-2 mb-2">
-            <AlertCircle
-              size={14}
-              className="text-yellow-700 mt-0.5 flex-shrink-0"
-            />
-            <div>
-              <p className="text-xs font-bold text-yellow-900">
-                Complete Your Payment
-              </p>
-              <p className="text-[11px] text-yellow-800 mt-0.5">
-                Send <strong>${order.total?.toFixed(2)}</strong> via{" "}
-                {order.paymentMethod.displayName}
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded p-2 space-y-1.5 text-[11px]">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">Handle:</span>
-              <div className="flex items-center gap-1">
-                <span className="font-mono font-bold">
-                  {order.paymentMethod.handle}
-                </span>
-                <button
-                  onClick={() => copyText(order.paymentMethod.handle, "Handle")}
-                  className="p-0.5 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <Copy size={10} />
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">Memo:</span>
-              <div className="flex items-center gap-1">
-                <span className="font-mono font-bold">{order.orderNumber}</span>
-                <button
-                  onClick={() => copyText(order.orderNumber, "Memo")}
-                  className="p-0.5 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <Copy size={10} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[10px] text-yellow-800 mt-2 italic">
-            ⏱ Include order number in payment note. We verify within 24 hours.
-          </p>
-        </div>
-      )}
-
-      {/* Verifying — payment sent, awaiting admin confirmation */}
-      {alertType === "verifying" && (
-        <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3">
-          <div className="flex items-start gap-2">
-            <Clock
-              size={14}
-              className="text-blue-700 mt-0.5 flex-shrink-0 animate-pulse"
-            />
-            <div>
-              <p className="text-xs font-bold text-blue-900">
-                Verifying Your Payment
-              </p>
-              <p className="text-[11px] text-blue-800 mt-0.5 leading-relaxed">
-                We&apos;ve received your payment notification via{" "}
-                {order.paymentMethod?.displayName}. Our team is confirming it —
-                usually within 24 hours. You&apos;ll get an email once verified.
-              </p>
-            </div>
-          </div>
-        </div>
+        <ManualOrderPaymentCard
+          compact
+          orderNumber={order.orderNumber}
+          total={order.total}
+          paymentMethod={order.paymentMethod}
+        />
       )}
 
       {/* Paid — confirmation */}
-      {alertType === "paid" && order.status === "paid" && (
+      {alertType === "paid" &&
+        ["processing", "ready_for_pickup", "shipped"].includes(order.status) && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start gap-2">
           <CheckCircle2
             size={14}

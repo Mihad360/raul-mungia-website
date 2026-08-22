@@ -11,7 +11,10 @@ const Footer = () => {
           {/* Column 1 — Logo + description + socials */}
           <div>
             <Logo />
-            <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+            <p className="text-xs text-[#C70A24] font-medium mt-3 tracking-wide">
+              Research. Innovate. Elevate.
+            </p>
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
               STX Research is a science-driven supplier of research-grade
               peptides, committed to precision, transparency, and quality
               assurance.

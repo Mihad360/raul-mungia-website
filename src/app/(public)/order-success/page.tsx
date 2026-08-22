@@ -26,6 +26,7 @@ import {
   PaymentStatusBadge,
   formatDate,
 } from "@/utils/orderHelpers";
+import ManualOrderPaymentCard from "@/components/orders/ManualOrderPaymentCard";
 
 const OrderSuccessContent = () => {
   const searchParams = useSearchParams();
@@ -67,7 +68,7 @@ const OrderSuccessContent = () => {
           We couldn&apos;t find the order you&apos;re looking for.
         </p>
         <Link
-          href="/account/orders"
+          href="/orders"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#C70A24" }}
         >
@@ -78,7 +79,8 @@ const OrderSuccessContent = () => {
   }
 
   const isManualPayment =
-    !order.paymentMethod?.isAutomated && order.paymentStatus !== "paid";
+    order.paymentMethod?.isAutomated === false &&
+    order.paymentStatus !== "paid";
   const isAlreadyPaid = order.paymentStatus === "paid";
 
   return (
@@ -147,7 +149,13 @@ const OrderSuccessContent = () => {
           </div>
         </div>
       ) : isManualPayment ? (
-        <ManualPaymentInstructions order={order} onCopy={copyText} />
+        <div className="mb-6">
+          <ManualOrderPaymentCard
+            orderNumber={order.orderNumber}
+            total={order.total}
+            paymentMethod={order.paymentMethod}
+          />
+        </div>
       ) : (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
           <div className="flex items-start gap-3">
@@ -250,7 +258,7 @@ const OrderSuccessContent = () => {
       {/* CTA buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Link
-          href={`/account/orders/${order._id}`}
+          href={`/orders/${order._id}`}
           className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#C70A24" }}
         >
@@ -263,89 +271,6 @@ const OrderSuccessContent = () => {
         >
           Continue Shopping
         </Link>
-      </div>
-    </div>
-  );
-};
-
-// ─── Manual Payment Instructions Component ───────────────────
-const ManualPaymentInstructions = ({
-  order,
-  onCopy,
-}: {
-  order: any;
-  onCopy: (text: string, label?: string) => void;
-}) => {
-  const method = order.paymentMethod;
-  const total = order.total?.toFixed(2);
-
-  return (
-    <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-6 mb-6">
-      <div className="flex items-start gap-3 mb-4">
-        <AlertCircle
-          size={22}
-          className="text-yellow-700 mt-0.5 flex-shrink-0"
-        />
-        <div>
-          <h3 className="font-bold text-yellow-900 text-lg mb-1">
-            Action Required: Complete Your Payment
-          </h3>
-          <p className="text-sm text-yellow-800">
-            Send <strong>${total}</strong> via {method.displayName} to complete
-            your order.
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg p-4 space-y-3 border border-yellow-200">
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            {method.displayName} Handle
-          </p>
-          <div className="flex items-center gap-2">
-            <p className="text-lg font-bold font-mono text-gray-900">
-              {method.handle}
-            </p>
-            <button
-              onClick={() => onCopy(method.handle, "Handle")}
-              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-            >
-              <Copy size={14} className="text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-              Amount
-            </p>
-            <p className="font-bold text-gray-900">${total}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-              Note / Memo
-            </p>
-            <div className="flex items-center gap-2">
-              <p className="font-mono font-bold text-gray-900">
-                {order.orderNumber}
-              </p>
-              <button
-                onClick={() => onCopy(order.orderNumber, "Order number")}
-                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-              >
-                <Copy size={12} className="text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 text-xs text-yellow-800 bg-yellow-100 rounded p-3">
-        ⏱️ <strong>Important:</strong> Include your order number{" "}
-        <span className="font-mono font-bold">{order.orderNumber}</span> in the
-        payment note. Orders are typically processed within 24 hours after
-        payment confirmation.
       </div>
     </div>
   );

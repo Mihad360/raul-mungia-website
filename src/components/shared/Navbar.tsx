@@ -30,6 +30,7 @@ import { useGetMyProfileQuery } from "@/redux/api/authApi";
 import { useGetCartCountQuery } from "@/redux/api/cartApi";
 // TODO: Adjust hook name if your wishlist API exposes it differently
 import { useGetMyWishlistQuery } from "@/redux/api/wishlistApi";
+import { useGetMyActiveOrdersSummaryQuery } from "@/redux/api/orderApi";
 import SearchDrawer from "./SearchDrawer";
 
 const Navbar = () => {
@@ -67,6 +68,15 @@ const Navbar = () => {
     wishlistData?.data?.products?.length ??
     wishlistData?.data?.products?.length ??
     0;
+
+  const { data: activeOrdersData } = useGetMyActiveOrdersSummaryQuery(
+    undefined,
+    { skip: !isLoggedIn },
+  );
+  const activeOrders = activeOrdersData?.data;
+  const hasActiveOrders = !!activeOrders?.hasActive;
+  const activeOrderCount = activeOrders?.count ?? 0;
+  const needsPayment = !!activeOrders?.needsPayment;
 
   const user = profileData?.data;
 
@@ -220,6 +230,18 @@ const Navbar = () => {
                         >
                           <Package size={16} />
                           My Orders
+                          {hasActiveOrders && (
+                            <span
+                              className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                              style={{
+                                backgroundColor: needsPayment
+                                  ? "#ea580c"
+                                  : "#C70A24",
+                              }}
+                            >
+                              {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                            </span>
+                          )}
                         </Link>
 
                         {(user?.role === "admin" ||
@@ -247,6 +269,28 @@ const Navbar = () => {
                     </>
                   )}
                 </div>
+              )}
+
+              {/* ─── Active order shortcut ─── */}
+              {mounted && isLoggedIn && hasActiveOrders && (
+                <Link
+                  href="/orders"
+                  className="relative hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-[#C70A24] transition-colors cursor-pointer"
+                  title={
+                    needsPayment
+                      ? "You have an order awaiting payment"
+                      : "View your orders"
+                  }
+                >
+                  <Package size={18} />
+                  <span>Orders</span>
+                  <span
+                    className="min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                    style={{ backgroundColor: needsPayment ? "#ea580c" : "#C70A24" }}
+                  >
+                    {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                  </span>
+                </Link>
               )}
 
               {/* ─── Wishlist with badge ─── */}
@@ -455,6 +499,16 @@ const Navbar = () => {
                   >
                     <Package size={16} />
                     My Orders
+                    {hasActiveOrders && (
+                      <span
+                        className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                        style={{
+                          backgroundColor: needsPayment ? "#ea580c" : "#C70A24",
+                        }}
+                      >
+                        {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                      </span>
+                    )}
                   </Link>
 
                   {(user?.role === "admin" || user?.role === "super_admin") && (

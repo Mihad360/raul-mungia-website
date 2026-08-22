@@ -14,6 +14,7 @@ import {
   useClearCartMutation,
 } from "@/redux/api/cartApi";
 import { couponStorage } from "@/utils/couponStorage";
+import ReconstitutionSolutionToggle from "@/components/cart/ReconstitutionSolutionToggle";
 
 // ─── Actual backend response shape ─────────────────────────────
 interface ICartItem {
@@ -429,6 +430,8 @@ const CartPage = () => {
                 </tbody>
               </table>
             </div>
+
+            <ReconstitutionSolutionToggle cartItems={cartItems} />
 
             <div className="space-y-3">
               {summary?.appliedCoupon ? (

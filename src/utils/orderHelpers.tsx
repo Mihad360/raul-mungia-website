@@ -15,20 +15,23 @@ import {
 export type OrderStatus =
   | "pending"
   | "awaiting_payment"
-  | "paid"
   | "processing"
-  | "ready_for_pickup" // NEW
+  | "ready_for_pickup"
   | "shipped"
   | "delivered"
   | "cancelled"
-  | "refunded";
+  | "refunded"
+  /** @deprecated Never set by backend — kept for legacy badge fallback */
+  | "paid";
 
 export type PaymentStatus =
-  | "unpaid"
+  | "pending"
   | "awaiting_confirmation"
   | "paid"
   | "refunded"
-  | "failed";
+  | "failed"
+  /** @deprecated Never set by backend — kept for legacy badge fallback */
+  | "unpaid";
 
 export const orderStatusConfig: Record<
   OrderStatus,
@@ -94,11 +97,12 @@ export const paymentStatusConfig: Record<
   PaymentStatus,
   { bg: string; text: string; label: string }
 > = {
+  pending: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
   unpaid: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Unpaid" },
   awaiting_confirmation: {
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    label: "Verifying Payment",
+    bg: "bg-yellow-50",
+    text: "text-yellow-700",
+    label: "Awaiting Payment",
   },
   paid: { bg: "bg-green-50", text: "text-green-700", label: "Paid" },
   refunded: { bg: "bg-gray-100", text: "text-gray-700", label: "Refunded" },
@@ -162,22 +166,28 @@ export const canCancelOrder = (status: string): boolean => {
 
 // ─── Payment State Logic ──────────────────────────────────────
 export type PaymentAlertType =
-  | "needs_payment" // unpaid manual → customer must send payment
-  | "verifying" // awaiting_confirmation → admin reviewing
+  | "needs_payment" // manual method, not paid yet → show Venmo/Cash App/Zelle details
+  | "verifying" // reserved (legacy)
   | "paid" // all good
-  | "none"; // automated method or other
+  | "none"; // automated method or cancelled/refunded
 
+const isManualMethod = (method: any): boolean => {
+  if (!method) return false;
+  return method.isAutomated === false;
+};
+
+/**
+ * Manual checkout payment is not completed at place-order time.
+ * Backend often stores paymentStatus as "awaiting_confirmation" immediately,
+ * so we still treat that as "needs payment" until status becomes "paid".
+ */
 export const getPaymentAlertType = (order: any): PaymentAlertType => {
   if (!order?.paymentMethod) return "none";
-
+  if (["cancelled", "refunded"].includes(order.status)) return "none";
   if (order.paymentStatus === "paid") return "paid";
-  if (order.paymentStatus === "awaiting_confirmation") return "verifying";
+  if (["refunded", "failed"].includes(order.paymentStatus)) return "none";
 
-  if (
-    !order.paymentMethod.isAutomated &&
-    order.paymentStatus === "unpaid" &&
-    order.status === "awaiting_payment"
-  ) {
+  if (isManualMethod(order.paymentMethod)) {
     return "needs_payment";
   }
 

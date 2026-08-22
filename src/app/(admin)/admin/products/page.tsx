@@ -1344,16 +1344,18 @@ export default function ProductsPage() {
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
 
-  const products: Product[] =
-    productsResponse?.data?.result || productsResponse?.data || [];
-  const meta = productsResponse?.data?.meta || {
+  const products: Product[] = Array.isArray(productsResponse?.data)
+    ? (productsResponse.data as Product[])
+    : [];
+  const meta = productsResponse?.meta || {
     page: 1,
     limit: 10,
     total: products.length,
     totalPage: 1,
   };
-  const categories: Category[] =
-    categoriesData?.data?.result || categoriesData?.data || [];
+  const categories: Category[] = Array.isArray(categoriesData?.data)
+    ? (categoriesData.data as Category[])
+    : [];
 
   // Reset page on search change
   useEffect(() => {

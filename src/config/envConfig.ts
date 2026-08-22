@@ -19,7 +19,8 @@ const envConfig = {
   payment: {
     cashApp: process.env.NEXT_PUBLIC_CASHAPP_HANDLE ?? "$STXResearch1",
     venmo: process.env.NEXT_PUBLIC_VENMO_HANDLE ?? "@STXRESEARCH",
-    zelle: process.env.NEXT_PUBLIC_ZELLE_PHONE ?? "361-222-4431",
+    // Zelle is handle-only (no QR) — same handle as Cash App per client
+    zelle: process.env.NEXT_PUBLIC_ZELLE_HANDLE ?? "$STXResearch1",
   },
 
   firebase: {

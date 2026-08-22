@@ -10,6 +10,12 @@ const HeroSection = () => {
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-6">
+          <p
+            className="text-sm md:text-base tracking-[0.18em] uppercase text-[#C70A24] font-semibold mb-3"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
+            Research. Innovate. Elevate.
+          </p>
           <h1
             className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-4"
             style={{ fontFamily: "Georgia, serif" }}

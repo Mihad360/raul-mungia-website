@@ -1,4 +1,5 @@
 import { baseApi } from "./baseApi";
+import { normalizeListResponse } from "@/utils/normalizeListResponse";
 
 const categoryApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -22,10 +23,7 @@ const categoryApi = baseApi.injectEndpoints({
         };
       },
 
-      transformResponse: (response) => ({
-        data: response.data,
-        meta: response.meta,
-      }),
+      transformResponse: (response) => normalizeListResponse(response),
 
       providesTags: ["category"],
     }),

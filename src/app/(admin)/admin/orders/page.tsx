@@ -128,13 +128,14 @@ type AdminOrder = {
 
 const STATUS_TABS: { value: string; label: string }[] = [
   { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
   { value: "awaiting_payment", label: "Awaiting Payment" },
-  { value: "paid", label: "Paid" },
   { value: "processing", label: "Processing" },
-  { value: "ready_for_pickup", label: "Ready for Pickup" }, // NEW
+  { value: "ready_for_pickup", label: "Ready for Pickup" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "refunded", label: "Refunded" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -490,26 +491,29 @@ const OrderDetailsModal = ({
   const isShipping = order.fulfillmentType === "shipping";
 
   const canConfirmPayment =
-    order.paymentStatus === "awaiting_confirmation" ||
-    (order.paymentStatus === "unpaid" && !order.paymentMethod?.isAutomated);
+    !["cancelled", "refunded", "delivered"].includes(order.status) &&
+    (order.paymentStatus === "awaiting_confirmation" ||
+      (order.paymentStatus === "pending" && !order.paymentMethod?.isAutomated));
 
   // Pickup-only actions
   const canMarkReadyForPickup =
     isPickup &&
     order.paymentStatus === "paid" &&
-    ["paid", "processing"].includes(order.status as string);
+    order.status === "processing";
 
   const canMarkPickedUp = isPickup && order.status === "ready_for_pickup";
 
   // Shipping-only actions
   const canGenerateLabel =
     isShipping &&
-    ["paid", "processing"].includes(order.status) &&
+    order.status === "processing" &&
+    order.paymentStatus === "paid" &&
     !order.trackingNumber;
 
   const canMarkShipped =
     isShipping &&
-    ["paid", "processing"].includes(order.status) &&
+    order.status === "processing" &&
+    order.paymentStatus === "paid" &&
     !order.trackingNumber;
 
   const canRefreshTracking =
@@ -518,9 +522,9 @@ const OrderDetailsModal = ({
   const canMarkDelivered =
     (isShipping && order.status === "shipped") || canMarkPickedUp;
 
-  const canCancel = !["delivered", "cancelled", "refunded"].includes(
-    order.status,
-  );
+  const canCancel =
+    !["delivered", "cancelled", "refunded"].includes(order.status) &&
+    order.paymentStatus !== "paid";
 
   const canRefund =
     order.paymentStatus === "paid" &&
@@ -530,7 +534,7 @@ const OrderDetailsModal = ({
   const handleConfirmPayment = () => {
     Modal.confirm({
       title: "Confirm Payment Received?",
-      content: `Mark order ${order.orderNumber} as paid? This will transition it to "paid" status and prepare for shipping.`,
+      content: `Mark payment received for order ${order.orderNumber}? This sets payment to paid and moves the order to processing.`,
       okText: "Yes, Confirm",
       cancelText: "Cancel",
       okButtonProps: { style: { backgroundColor: "#C70A24" } },
@@ -1065,7 +1069,7 @@ const CancelOrderModal = ({
     try {
       await cancelOrder({
         id: order._id,
-        body: { cancellationReason: reason.trim() },
+        body: { reason: reason.trim() },
       }).unwrap();
       message.success("Order cancelled");
       setReason("");
@@ -1161,7 +1165,10 @@ const RefundOrderModal = ({
     try {
       await refund({
         id: order._id,
-        body: { amount: refundAmount, reason: reason.trim() },
+        body: {
+          amount: refundAmount,
+          refundReason: reason.trim(),
+        },
       }).unwrap();
       message.success("Refund processed");
       setAmount("");

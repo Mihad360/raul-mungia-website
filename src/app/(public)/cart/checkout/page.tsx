@@ -33,6 +33,10 @@ import { useGetActivePaymentMethodsQuery } from "@/redux/api/paymentMethodApi";
 import { couponStorage } from "@/utils/couponStorage";
 import { usePlaceOrderMutation } from "@/redux/api/orderApi";
 import { useGetMyProfileQuery } from "@/redux/api/authApi";
+import ReconstitutionSolutionToggle from "@/components/cart/ReconstitutionSolutionToggle";
+import PaymentQrCode, {
+  paymentTypeHasQr,
+} from "@/components/shared/PaymentQrCode";
 
 type TFulfillmentType = "pickup" | "shipping";
 
@@ -125,9 +129,10 @@ const US_STATES = [
 
 // ⚠️ Replace these with values from admin settings or env later
 const PICKUP_LOCATION = {
-  name: "STX Research Office",
+  name: "STX Research Office — Corpus Christi",
   address: "Contact us for the exact pickup address after placing your order",
   hours: "Mon–Fri, 9:00 AM – 6:00 PM CST",
+  city: "Corpus Christi",
 };
 
 const CheckoutPage = () => {
@@ -371,10 +376,15 @@ const CheckoutPage = () => {
             customerNote: orderNote || undefined,
           };
 
-      await placeOrder(payload).unwrap();
+      const result = await placeOrder(payload).unwrap();
       couponStorage.remove();
       toast.success("Order placed successfully!");
-      router.push(`/orders`);
+      const orderId = result?.data?._id || result?.data?.id;
+      if (orderId) {
+        router.push(`/order-success?orderId=${orderId}`);
+      } else {
+        router.push("/orders");
+      }
     } catch (err) {
       const error = err as { data?: { message?: string } };
       toast.error(error?.data?.message || "Failed to place order");
@@ -439,8 +449,8 @@ const CheckoutPage = () => {
                   selected={fulfillmentType === "pickup"}
                   onClick={() => handleFulfillmentChange("pickup")}
                   icon={Home}
-                  title="Local Pickup"
-                  subtitle="Pick up from our location"
+                  title="Local Pickup — Corpus Christi"
+                  subtitle="Pick up from our Corpus Christi location"
                   badge="FREE"
                   badgeColor="green"
                 />
@@ -506,6 +516,11 @@ const CheckoutPage = () => {
                   onFetchRates={handleFetchRates}
                 />
               </SectionCard>
+            )}
+
+            {/* ─── Reconstitution upsell ───────────────────────── */}
+            {summary?.items?.length > 0 && (
+              <ReconstitutionSolutionToggle cartItems={summary.items} />
             )}
 
             {/* ─── Payment Method ─────────────────────────────── */}
@@ -1053,16 +1068,18 @@ const PaymentMethodRow = ({
 };
 
 const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
-  // Resolve handle: prefer API value, fall back to env config
+  // Resolve handle: API value first, env fallback.
+  // Zelle is always handle-only ($STXResearch1) — never a QR.
+  const typeKey = (method.type || "").toLowerCase().replace(/[_-\s]/g, "");
   const resolvedHandle =
-    method.handle ||
-    (method.type === "cashapp"
-      ? envConfig.payment.cashApp
-      : method.type === "venmo"
-        ? envConfig.payment.venmo
-        : method.type === "zelle"
-          ? envConfig.payment.zelle
-          : null);
+    typeKey === "zelle"
+      ? envConfig.payment.zelle
+      : method.handle ||
+        (typeKey === "cashapp" || typeKey === "cash"
+          ? envConfig.payment.cashApp
+          : typeKey === "venmo"
+            ? envConfig.payment.venmo
+            : null);
 
   if (method.isAutomated) {
     return (
@@ -1087,8 +1104,8 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div className="flex items-start gap-3">
-        <Info size={18} className="text-blue-700 flex-shrink-0 mt-0.5" />
+      <div className="flex flex-col sm:flex-row items-start gap-4">
+        <Info size={18} className="text-blue-700 flex-shrink-0 mt-0.5 hidden sm:block" />
         <div className="flex-1">
           <p className="font-semibold text-blue-800 text-sm mb-2">
             How {method.displayName} payment works
@@ -1104,7 +1121,10 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
                 on {method.displayName}.
               </li>
             )}
-            <li>Include your order number in the payment note.</li>
+            <li className="font-semibold text-[#C70A24]">
+              Include your order number in the payment note. Do not send any
+              product names in the notes.
+            </li>
             <li>
               Our team will confirm payment within 24 hours and process your
               order.
@@ -1116,6 +1136,27 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
             </p>
           )}
         </div>
+        {paymentTypeHasQr(method.type) && (
+          <div className="flex flex-col items-center gap-1.5 mx-auto sm:mx-0">
+            <PaymentQrCode
+              type={method.type}
+              displayName={method.displayName}
+              size={140}
+            />
+            <p className="text-[10px] text-blue-700/80">Scan to pay</p>
+          </div>
+        )}
+        {typeKey === "zelle" && resolvedHandle && (
+          <div className="w-full sm:w-auto sm:min-w-[140px] rounded-xl border border-blue-200 bg-white px-3 py-3 text-center">
+            <p className="text-[10px] uppercase tracking-wide text-blue-600 mb-1">
+              Zelle handle
+            </p>
+            <p className="font-mono font-bold text-blue-900 text-sm break-all">
+              {resolvedHandle}
+            </p>
+            <p className="text-[10px] text-blue-600/80 mt-1">No QR — send to handle</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1312,7 +1353,9 @@ const OrderSummary = ({
               </span>
             )}
             {isPickup && (
-              <span className="block text-xs text-gray-400">Local pickup</span>
+              <span className="block text-xs text-gray-400">
+                Local pickup — Corpus Christi
+              </span>
             )}
           </span>
           <span className="text-gray-900 font-medium">

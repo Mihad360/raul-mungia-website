@@ -22,7 +22,9 @@ interface ICategory {
 const FilterSidebar = ({ filters, onFiltersChange }: TFilterSidebarProps) => {
   const { data: categoriesData, isLoading: catLoading } =
     useGetAllCategoriesQuery(undefined);
-  const categories: ICategory[] = categoriesData?.data || [];
+  const categories: ICategory[] = Array.isArray(categoriesData?.data)
+    ? (categoriesData.data as ICategory[])
+    : [];
 
   const handleCategoryClick = (categoryName: string) => {
     onFiltersChange({
@@ -40,7 +42,7 @@ const FilterSidebar = ({ filters, onFiltersChange }: TFilterSidebarProps) => {
   };
 
   return (
-    <aside className="w-full md:w-56 flex-shrink-0">
+    <aside className="w-full md:w-56 flex-shrink-0 md:sticky md:top-24 md:self-start md:bg-white md:pb-4">
       {/* Header with clear button */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-900">Filters</h3>

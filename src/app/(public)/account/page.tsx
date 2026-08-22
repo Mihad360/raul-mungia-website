@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Package,
+  ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 import { useGetMyProfileQuery } from "@/redux/api/authApi";
 
 const AccountPage = () => {
@@ -103,6 +106,27 @@ const AccountPage = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="mb-6">
+        <Link
+          href="/orders"
+          className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-5 py-4 hover:border-[#C70A24]/30 hover:bg-red-50/40 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-red-50 text-[#C70A24] flex items-center justify-center">
+              <Package size={18} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">My Orders</p>
+              <p className="text-xs text-gray-500">
+                Track payments, pickup, and shipping
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={16} className="text-gray-400" />
+        </Link>
       </div>
 
       {/* Info Sections */}

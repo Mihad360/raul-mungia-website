@@ -45,9 +45,17 @@ const orderApi = baseApi.injectEndpoints({
       query: ({ id, reason }: { id: string; reason: string }) => ({
         url: `/order/my-orders/${id}/cancel`,
         method: "PATCH",
-        data: { cancellationReason: reason },
+        data: { reason },
       }),
       invalidatesTags: ["order"],
+    }),
+
+    getMyActiveOrdersSummary: build.query({
+      query: () => ({
+        url: "/order/my-orders/active-summary",
+        method: "GET",
+      }),
+      providesTags: ["order"],
     }),
   }),
 });
@@ -58,4 +66,5 @@ export const {
   useGetMyLatestOrderQuery,
   useGetMySingleOrderQuery,
   useCancelMyOrderMutation,
+  useGetMyActiveOrdersSummaryQuery,
 } = orderApi;

@@ -54,7 +54,9 @@ const BestSellingSection = () => {
   });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allProducts: IProduct[] = data?.data || [];
+  const allProducts: IProduct[] = Array.isArray(data?.data)
+    ? (data.data as IProduct[])
+    : [];
 
   // Extract unique categories when products load
   useEffect(() => {
