@@ -131,10 +131,10 @@ const Footer = () => {
               <li className="text-xs text-gray-400">
                 <span className="block">📧</span>
                 <a
-                  href="mailto:support@stxresearch.com"
+                  href="mailto:rmungia@stxresearch.com"
                   className="hover:text-white transition-colors"
                 >
-                  support@stxresearch.com
+                  rmungia@stxresearch.com
                 </a>
               </li>
               <li className="text-xs text-gray-400">
