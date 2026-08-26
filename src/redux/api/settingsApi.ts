@@ -14,7 +14,17 @@ export const settingsApi = baseApi.injectEndpoints({
 
     // FAQ
     getAllFaqs: builder.query({
-      query: () => ({ url: "/faq/", method: "GET" }),
+      query: (args) => {
+        const params = new URLSearchParams();
+        if (args) {
+          Object.entries(args).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              params.append(key, String(value));
+            }
+          });
+        }
+        return { url: "/faq/", method: "GET", params };
+      },
       providesTags: ["faq"],
     }),
     getSingleFaq: builder.query({

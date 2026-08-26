@@ -6,6 +6,9 @@ import { clearClientToken, setClientToken } from "./cookies.client";
  * - Caller handles redirect
  */
 export function handleLoginSuccess(token: string): void {
+  if (!token || token === "undefined" || token === "null") {
+    throw new Error("Login succeeded but no access token was returned");
+  }
   setClientToken(token);
 }
 

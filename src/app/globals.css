@@ -28,6 +28,22 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+a,
+button,
+[role="button"],
+label,
+select,
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 /* Force readable typed text in all native + antd inputs */
 input,
 textarea,

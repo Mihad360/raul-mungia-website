@@ -26,7 +26,7 @@ export default function Home() {
       <PuritySection />
       <QualitySection />
       <FAQSection />
-      <BlogSection />
+      <BlogSection variant="home" />
       <CTABanner />
       <Footer />
     </main>

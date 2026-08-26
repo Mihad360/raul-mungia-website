@@ -48,7 +48,6 @@ const QualitySection = () => {
   return (
     <section className="w-full py-16" style={{ backgroundColor: "#f5f5f5" }}>
       <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
         <div className="text-center mb-12">
           <span className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-2 block">
             Research Peptides
@@ -61,9 +60,7 @@ const QualitySection = () => {
           </h2>
         </div>
 
-        {/* 3-col layout: features left | product center | features right */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-          {/* Left features */}
           <div className="flex flex-col gap-8">
             {features.slice(0, 3).map((f, i) => (
               <div key={i} className="flex flex-col gap-1">
@@ -76,19 +73,18 @@ const QualitySection = () => {
             ))}
           </div>
 
-          {/* Center — product image */}
           <div className="flex items-center justify-center">
-            <div className="relative w-56 h-72 rounded-3xl overflow-hidden">
+            <div className="w-full max-w-[280px]">
               <Image
                 src={qualityImage}
                 alt="Research Peptides Product"
-                fill
-                className="object-cover"
+                className="w-full h-auto object-contain"
+                style={{ width: "100%", height: "auto" }}
+                sizes="280px"
               />
             </div>
           </div>
 
-          {/* Right features */}
           <div className="flex flex-col gap-8">
             {features.slice(3, 6).map((f, i) => (
               <div key={i} className="flex flex-col gap-1">

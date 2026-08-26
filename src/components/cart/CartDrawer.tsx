@@ -44,6 +44,7 @@ interface ICartSummary {
   total: number;
   hasUnavailableItems: boolean;
   freeShippingEligible: boolean;
+  freeShippingEnabled?: boolean;
 }
 
 type TCartDrawerProps = {
@@ -310,7 +311,8 @@ const CartDrawer = ({ isOpen, onClose }: TCartDrawerProps) => {
               <span style={{ color: "#C70A24" }}>${total.toFixed(2)}</span>
             </div>
 
-            {summary?.freeShippingEligible ? (
+            {summary?.freeShippingEnabled !== false &&
+            summary?.freeShippingEligible ? (
               <p className="text-xs text-green-600 text-center font-medium">
                 ✓ Free shipping unlocked
               </p>

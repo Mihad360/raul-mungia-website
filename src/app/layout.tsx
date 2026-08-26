@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner"; // optional, for toast notifications
 import { ReduxProvider } from "@/redux/ReduxProvider";
+import envConfig from "@/config/envConfig";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,9 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_LIVE_BASE_URL ||
-      process.env.NEXT_PUBLIC_LOCAL_BASE_URL ||
-      "https://www.stxresearch.com",
+    envConfig.baseUrl || "https://www.stxresearch.com",
   ),
   title: {
     default: "STX Research — Premium Research Peptides",

@@ -15,6 +15,10 @@ export function getClientToken(): string | null {
 
 /** Set the access token after login */
 export function setClientToken(token: string): void {
+  if (!token || token === "undefined" || token === "null") {
+    console.error("Refusing to store invalid access token");
+    return;
+  }
   Cookies.set(AUTH_CONFIG.TOKEN_COOKIE_KEY, token, {
     expires: AUTH_CONFIG.COOKIE_EXPIRES_DAYS,
     path: AUTH_CONFIG.COOKIE_PATH,

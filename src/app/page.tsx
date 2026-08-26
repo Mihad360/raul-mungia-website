@@ -24,8 +24,8 @@ export default function Home() {
       <PuritySection />
       <QualitySection />
       <FAQSection />
-      <BlogSection />
-      {/* <CTABanner /> */}
+      <BlogSection variant="home" />
+      <CTABanner />
       <Footer />
     </main>
   );

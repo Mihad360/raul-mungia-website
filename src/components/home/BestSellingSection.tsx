@@ -136,6 +136,7 @@ const BestSellingSection = () => {
             <div className="flex flex-wrap items-center gap-2">
               {allCategories.map((cat) => (
                 <button
+                  type="button"
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${

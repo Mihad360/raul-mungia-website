@@ -28,19 +28,21 @@ type VariantLike = {
 type ProductLike = {
   _id: string;
   title: string;
+  productCode?: string;
   mainImage?: string;
   variants?: VariantLike[];
 };
 
-function isReconstitutionProduct(product: {
+function isBacteriostaticProduct(product: {
   title?: string;
   productCode?: string;
 }): boolean {
-  const haystack = `${product.title || ""} ${product.productCode || ""}`.toLowerCase();
+  const haystack =
+    `${product.title || ""} ${product.productCode || ""}`.toLowerCase();
   return (
-    haystack.includes("reconstitution") ||
     haystack.includes("bacteriostatic") ||
-    haystack.includes("bac water")
+    haystack.includes("bac water") ||
+    haystack.includes("reconstitution")
   );
 }
 
@@ -49,13 +51,18 @@ type ReconstitutionSolutionToggleProps = {
 };
 
 /**
- * Cart/checkout upsell: toggle "Add Reconstitution Solution".
- * Finds the matching catalog product by name; no-ops quietly if missing.
+ * Cart/checkout upsell: toggle bacteriostatic / reconstitution water.
+ * Finds the matching catalog product by name; hides quietly if missing.
  */
 const ReconstitutionSolutionToggle = ({
   cartItems,
 }: ReconstitutionSolutionToggleProps) => {
-  const { data, isLoading } = useGetAllProductsQuery({
+  // Prefer bacteriostatic naming (client wording); also try reconstitution
+  const bacQuery = useGetAllProductsQuery({
+    searchTerm: "bacteriostatic",
+    limit: 20,
+  });
+  const reconQuery = useGetAllProductsQuery({
     searchTerm: "reconstitution",
     limit: 20,
   });
@@ -64,19 +71,33 @@ const ReconstitutionSolutionToggle = ({
   const [removeCartItem] = useRemoveCartItemMutation();
   const [busy, setBusy] = useState(false);
 
+  const isLoading = bacQuery.isLoading || reconQuery.isLoading;
+
   const product = useMemo(() => {
-    const list = (data?.data || []) as ProductLike[];
+    const merged = [
+      ...((bacQuery.data?.data || []) as ProductLike[]),
+      ...((reconQuery.data?.data || []) as ProductLike[]),
+    ];
+    const seen = new Set<string>();
+    const unique = merged.filter((p) => {
+      if (!p?._id || seen.has(p._id)) return false;
+      seen.add(p._id);
+      return true;
+    });
+
     return (
-      list.find((p) => isReconstitutionProduct(p)) ||
-      list.find((p) =>
+      unique.find((p) => isBacteriostaticProduct(p)) ||
+      unique.find((p) =>
         (p.title || "").toLowerCase().includes("solution"),
       ) ||
       null
     );
-  }, [data?.data]);
+  }, [bacQuery.data?.data, reconQuery.data?.data]);
 
   const variant = product?.variants?.[0];
   const price = variant?.price ?? 14.99;
+  const displayName =
+    product?.title?.trim() || "Bacteriostatic Water";
 
   const existingItem = useMemo(() => {
     if (!product) return null;
@@ -91,7 +112,7 @@ const ReconstitutionSolutionToggle = ({
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 flex items-center gap-2 text-sm text-gray-500">
         <Loader2 size={16} className="animate-spin" />
-        Checking reconstitution solution…
+        Checking bacteriostatic water…
       </div>
     );
   }
@@ -105,10 +126,10 @@ const ReconstitutionSolutionToggle = ({
     try {
       if (isOn && existingItem) {
         await removeCartItem(existingItem._id).unwrap();
-        toast.success("Reconstitution Solution removed");
+        toast.success(`${displayName} removed`);
       } else {
         if (variant.stock <= 0) {
-          toast.error("Reconstitution Solution is out of stock");
+          toast.error(`${displayName} is out of stock`);
           return;
         }
         await addToCart({
@@ -116,7 +137,7 @@ const ReconstitutionSolutionToggle = ({
           size: variant.size,
           quantity: 1,
         }).unwrap();
-        toast.success("Reconstitution Solution added");
+        toast.success(`${displayName} added`);
       }
     } catch (err) {
       const error = err as { data?: { message?: string } };
@@ -146,7 +167,7 @@ const ReconstitutionSolutionToggle = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                Add Reconstitution Solution
+                Add Bacteriostatic Water
               </p>
               <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                 Recommended for reconstituting research peptides.{" "}
@@ -160,7 +181,7 @@ const ReconstitutionSolutionToggle = ({
               type="button"
               role="switch"
               aria-checked={isOn}
-              aria-label="Add reconstitution solution"
+              aria-label="Add bacteriostatic water"
               disabled={busy}
               onClick={handleToggle}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${

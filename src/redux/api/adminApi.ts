@@ -166,7 +166,17 @@ const adminApi = baseApi.injectEndpoints({
 
     /* ===================== FAQ ===================== */
     getAllFaqsAdmin: build.query({
-      query: () => ({ url: "/admin/faqs", method: "GET" }),
+      query: (args) => {
+        const params = new URLSearchParams();
+        if (args) {
+          Object.entries(args).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              params.append(key, String(value));
+            }
+          });
+        }
+        return { url: "/admin/faqs", method: "GET", params };
+      },
       providesTags: ["faq"],
     }),
     createFaq: build.mutation({
@@ -246,6 +256,25 @@ const adminApi = baseApi.injectEndpoints({
         data: body,
       }),
       invalidatesTags: ["shipping-policy"],
+    }),
+    getStoreSettings: build.query({
+      query: () => ({
+        url: "/admin/store-settings",
+        method: "GET",
+      }),
+      providesTags: ["store-settings"],
+    }),
+    updateStoreSettings: build.mutation({
+      query: (body: {
+        freeShippingEnabled?: boolean;
+        freeShippingThreshold?: number;
+        freeShippingService?: string;
+      }) => ({
+        url: "/admin/store-settings",
+        method: "PATCH",
+        data: body,
+      }),
+      invalidatesTags: ["store-settings"],
     }),
     /* ===================== EXPLORE PURITY ===================== */
     createExplorePurity: build.mutation({
@@ -427,6 +456,8 @@ export const {
   useCreateDisclaimerMutation,
   useUpdateDisclaimerMutation,
   useUpdateShippingPolicyMutation,
+  useGetStoreSettingsQuery,
+  useUpdateStoreSettingsMutation,
 
   // Explore Purity
   useCreateExplorePurityMutation,

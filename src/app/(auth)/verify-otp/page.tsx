@@ -64,6 +64,7 @@ const VerifyOtpPage = () => {
         email,
         otp: data.otp,
         fcmToken,
+        purpose: flow === "reset" ? "reset" : "register",
       }).unwrap();
 
       const token =

@@ -78,13 +78,15 @@ const AgeVerificationModal = () => {
         </div>
 
         <div className="flex gap-3">
-          <button
+            <button
+            type="button"
             onClick={handleExit}
             className="flex-1 py-3 rounded-lg bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors"
           >
             Exit
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={!ageConfirmed || !researchConfirmed}
             className="flex-1 py-3 rounded-lg text-white font-semibold text-sm transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"

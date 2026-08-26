@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import banner from "../../../assets/banner1.png";
-import banner1 from "../../../assets/banner2.png";
+import bannerBg from "../../../assets/banner1.png";
+import bannerVials from "../../../assets/banner2.png";
 
 const HeroSection = () => {
   return (
     <section className="w-full bg-white pt-14 pb-0">
       <div className="max-w-7xl mx-auto px-6">
-        {/* Heading */}
         <div className="text-center mb-6">
           <p
             className="text-sm md:text-base tracking-[0.18em] uppercase text-[#C70A24] font-semibold mb-3"
@@ -28,7 +27,6 @@ const HeroSection = () => {
             Premium peptides. Fair price. Zero compromise.
           </p>
 
-          {/* CTA buttons */}
           <div className="flex items-center justify-center gap-4">
             <Link
               href="/shop"
@@ -40,34 +38,25 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Hero image with product overlay */}
-        <div
-          className="relative w-full rounded-2xl overflow-hidden"
-          style={{ height: "500px" }}
-        >
-          {/* Background Banner */}
+        <div className="relative w-full rounded-2xl overflow-hidden bg-black">
           <Image
-            src={banner}
-            alt="Premium Research Peptides Banner"
-            fill
-            className="object-cover"
+            src={bannerBg}
+            alt=""
+            className="w-full h-auto object-contain"
+            style={{ width: "100%", height: "auto" }}
+            sizes="(min-width: 1280px) 1280px, 100vw"
             priority
           />
 
-          {/* Dark overlay for better product visibility */}
-          <div className="absolute inset-0 bg-black/20" />
-
-          {/* Product Image Overlay - centered */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-full h-full">
-              <Image
-                src={banner1}
-                alt="Research Peptides Product"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+            <Image
+              src={bannerVials}
+              alt="VELTRONIX Research Peptide"
+              fill
+              className="object-contain"
+              sizes="(min-width: 1280px) 1280px, 100vw"
+              priority
+            />
           </div>
         </div>
       </div>

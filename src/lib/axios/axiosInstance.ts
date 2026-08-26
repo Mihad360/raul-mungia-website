@@ -25,7 +25,14 @@ axiosInstance.interceptors.request.use(
         ? Cookies.get(AUTH_CONFIG.TOKEN_COOKIE_KEY)
         : null;
 
-    if (accessToken && config.headers) {
+    // Skip garbage / empty cookies so we don't send "Bearer undefined"
+    const isUsableToken =
+      !!accessToken &&
+      accessToken !== "undefined" &&
+      accessToken !== "null" &&
+      accessToken.split(".").length === 3;
+
+    if (isUsableToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 

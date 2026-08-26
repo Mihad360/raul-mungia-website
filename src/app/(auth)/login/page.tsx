@@ -36,7 +36,21 @@ const LoginPage = () => {
       const res = await loginUser({ ...data, fcmToken }).unwrap();
 
       const token = res?.data?.accessToken || res?.data?.token;
-      console.log("Calling setClientToken...");
+
+      // Unverified users get OTP instead of a session token
+      if (!token) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pendingEmail", data.email);
+          localStorage.setItem("verifyFlow", "register");
+        }
+        toast.message(
+          res?.message ||
+            "Please verify your email. We sent a new OTP code.",
+        );
+        router.push("/verify-otp");
+        return;
+      }
+
       handleLoginSuccess(token);
       toast.success("Welcome back!");
       router.push(redirectTo);

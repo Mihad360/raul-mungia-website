@@ -61,6 +61,7 @@ interface ICartSummary {
   total: number;
   hasUnavailableItems: boolean;
   freeShippingEligible: boolean;
+  freeShippingEnabled?: boolean;
   freeShippingThreshold: number;
   amountToFreeShipping: number;
 }
@@ -105,6 +106,7 @@ const CartPage = () => {
   const total = summary?.total ?? 0;
   const hasUnavailableItems = summary?.hasUnavailableItems ?? false;
 
+  const freeShippingEnabled = summary?.freeShippingEnabled ?? true;
   const freeShippingEligible = summary?.freeShippingEligible ?? false;
   const freeShippingThreshold = summary?.freeShippingThreshold ?? 150;
   const amountToFreeShipping =
@@ -262,41 +264,42 @@ const CartPage = () => {
               </div>
             )}
 
-            {!freeShippingEligible ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-lg">ⓘ</span>
-                  <span className="text-sm text-gray-700 flex-1">
-                    You only need{" "}
-                    <strong>${amountToFreeShipping.toFixed(2)}</strong> more for
-                    free shipping
+            {freeShippingEnabled &&
+              (!freeShippingEligible ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-lg">ⓘ</span>
+                    <span className="text-sm text-gray-700 flex-1">
+                      You only need{" "}
+                      <strong>${amountToFreeShipping.toFixed(2)}</strong> more
+                      for free shipping
+                    </span>
+                    <Link
+                      href="/shop"
+                      className="text-sm font-medium hover:underline cursor-pointer"
+                      style={{ color: "#C70A24" }}
+                    >
+                      Continue Shopping
+                    </Link>
+                  </div>
+                  <div className="w-full bg-gray-300 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{
+                        backgroundColor: "#C70A24",
+                        width: `${freeShippingProgress}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                  <span className="text-lg">✓</span>
+                  <span className="text-sm text-green-700 font-medium">
+                    You&apos;ve qualified for free shipping!
                   </span>
-                  <Link
-                    href="/shop"
-                    className="text-sm font-medium hover:underline cursor-pointer"
-                    style={{ color: "#C70A24" }}
-                  >
-                    Continue Shopping
-                  </Link>
                 </div>
-                <div className="w-full bg-gray-300 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="h-full transition-all duration-300"
-                    style={{
-                      backgroundColor: "#C70A24",
-                      width: `${freeShippingProgress}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                <span className="text-lg">✓</span>
-                <span className="text-sm text-green-700 font-medium">
-                  You&apos;ve qualified for free shipping!
-                </span>
-              </div>
-            )}
+              ))}
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -553,7 +556,7 @@ const CartPage = () => {
                   Shipping
                   {shippingCost === 0 && (
                     <span className="text-green-600 ml-1">
-                      {freeShippingEligible
+                      {freeShippingEnabled && freeShippingEligible
                         ? "(FREE)"
                         : "(Calculated at checkout)"}
                     </span>
