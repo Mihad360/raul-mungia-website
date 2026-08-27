@@ -81,82 +81,78 @@ const FAQSection = () => {
   return (
     <section className="w-full bg-white py-20">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="mb-12">
-          <h2
-            className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
-            style={{ fontFamily: "Georgia, serif" }}
-          >
-            Frequently Asked
-            <br />
-            Questions
-          </h2>
-          <div className="w-20 h-1 bg-[#C70A24] rounded-full" />
-        </div>
-
         {visibleCategories.length === 0 ? (
-          <p className="text-gray-500">No FAQs available yet.</p>
+          <>
+            <div className="mb-12">
+              <h2
+                className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
+                style={{ fontFamily: "Georgia, serif" }}
+              >
+                Frequently Asked
+                <br />
+                Questions
+              </h2>
+              <div className="w-20 h-1 bg-[#C70A24] rounded-full" />
+            </div>
+            <p className="text-gray-500">No FAQs available yet.</p>
+          </>
         ) : (
-          <div className="grid lg:grid-cols-2 gap-12">
-            <div>
-              <div className="flex flex-wrap gap-3">
-                {visibleCategories.map((cat) => (
-                  <button
-                    type="button"
-                    key={cat}
-                    onClick={() => {
-                      setActiveCategory(cat);
-                      setExpandedIndex(0);
-                    }}
-                    className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                      activeCategory === cat
-                        ? "text-white shadow-md"
-                        : "text-gray-600 bg-gray-100 hover:bg-gray-200"
-                    }`}
-                    style={
-                      activeCategory === cat
-                        ? { backgroundColor: "#C70A24" }
-                        : {}
-                    }
-                  >
-                    {cat}
-                  </button>
-                ))}
+          <div className="flex flex-col lg:flex-row gap-12">
+            {/* ── Left: heading + category nav ── */}
+            <div className="lg:w-72 xl:w-80 flex-shrink-0">
+              <div className="lg:sticky lg:top-24">
+                <h2
+                  className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
+                  style={{ fontFamily: "Georgia, serif" }}
+                >
+                  Frequently
+                  <br />
+                  Asked
+                  <br />
+                  Questions
+                </h2>
+                <div className="w-20 h-1 bg-[#C70A24] rounded-full mb-8" />
+
+                {/* Category pills — vertical on desktop, horizontal scroll on mobile */}
+                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+                  {visibleCategories.map((cat) => (
+                    <button
+                      type="button"
+                      key={cat}
+                      onClick={() => {
+                        setActiveCategory(cat);
+                        setExpandedIndex(0);
+                      }}
+                      className={`flex-shrink-0 text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        activeCategory === cat
+                          ? "text-white shadow-sm"
+                          : "text-gray-600 bg-gray-100 hover:bg-gray-200"
+                      }`}
+                      style={
+                        activeCategory === cat
+                          ? { backgroundColor: "#C70A24" }
+                          : {}
+                      }
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            {/* ── Right: FAQ accordions ── */}
+            <div className="flex-1 flex flex-col gap-3">
               {currentFaqs.length > 0 ? (
                 currentFaqs.map((item, idx) => (
-                  <div
+                  <FaqItem
                     key={item._id}
-                    className="border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-all"
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedIndex(expandedIndex === idx ? null : idx)
-                      }
-                      className="w-full px-6 py-5 flex items-center justify-between text-left bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="text-base font-semibold text-gray-900 pr-4">
-                        {item.question}
-                      </span>
-                      <ChevronDown
-                        size={20}
-                        className={`shrink-0 text-gray-400 transition-transform duration-300 ${
-                          expandedIndex === idx ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {expandedIndex === idx && (
-                      <div className="px-6 py-5 bg-gray-50 border-t border-gray-100">
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {item.answer}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                    item={item}
+                    isOpen={expandedIndex === idx}
+                    onToggle={() =>
+                      setExpandedIndex(expandedIndex === idx ? null : idx)
+                    }
+                  />
                 ))
               ) : (
                 <div className="text-center py-12 text-gray-400">
@@ -170,5 +166,43 @@ const FAQSection = () => {
     </section>
   );
 };
+
+/* ── FAQ accordion item ── */
+const FaqItem = ({
+  item,
+  isOpen,
+  onToggle,
+}: {
+  item: IFaq;
+  isOpen: boolean;
+  onToggle: () => void;
+}) => (
+  <div className="border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-all">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      className="w-full px-6 py-5 flex items-center justify-between text-left bg-white hover:bg-gray-50 transition-colors"
+    >
+      <span className="text-base font-semibold text-gray-900 pr-4">
+        {item.question}
+      </span>
+      <ChevronDown
+        size={20}
+        className={`shrink-0 text-gray-400 transition-transform duration-300 ${
+          isOpen ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+
+    {isOpen && (
+      <div className="px-6 py-5 bg-gray-50 border-t border-gray-100">
+        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+          {item.answer}
+        </p>
+      </div>
+    )}
+  </div>
+);
 
 export default FAQSection;
