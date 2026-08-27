@@ -1,19 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { QrCode } from "lucide-react";
-
-/**
- * Static QR assets in /public/qr/
- * Cash App + Venmo have real QRs. Zelle intentionally has NO QR.
- */
-const QR_BY_TYPE: Record<string, string> = {
-  cashapp: "/qr/cashapp.png",
-  cash_app: "/qr/cashapp.png",
-  "cash-app": "/qr/cashapp.png",
-  cash: "/qr/cashapp.png",
-  venmo: "/qr/venmo.png",
-};
 
 /** Normalize API type / display name into a lookup key */
 export const normalizePaymentType = (value?: string | null): string =>
@@ -24,33 +12,19 @@ export const normalizePaymentType = (value?: string | null): string =>
     .replace(/_/g, "")
     .replace(/-/g, "");
 
-export const paymentTypeHasQr = (type?: string | null): boolean => {
+/** Prefer API QR URL; Zelle stays handle-only. */
+export const paymentTypeHasQr = (
+  type?: string | null,
+  qrCodeUrl?: string | null,
+): boolean => {
   const key = normalizePaymentType(type);
   if (!key || key === "zelle") return false;
-  return Boolean(
-    QR_BY_TYPE[key] ||
-      QR_BY_TYPE[type?.toLowerCase() || ""] ||
-      (key.includes("cash") ? QR_BY_TYPE.cashapp : null) ||
-      (key.includes("venmo") ? QR_BY_TYPE.venmo : null),
-  );
-};
-
-const resolveQrSrc = (type?: string | null): string | undefined => {
-  if (!type) return undefined;
-  const raw = type.toLowerCase().trim();
-  const compact = normalizePaymentType(type);
-
-  if (compact === "zelle" || raw === "zelle") return undefined;
-
-  return (
-    QR_BY_TYPE[raw] ||
-    QR_BY_TYPE[compact] ||
-    (compact.includes("cash") ? QR_BY_TYPE.cashapp : undefined) ||
-    (compact.includes("venmo") ? QR_BY_TYPE.venmo : undefined)
-  );
+  return Boolean(qrCodeUrl?.trim());
 };
 
 type PaymentQrCodeProps = {
+  /** Cloudinary / API QR image URL */
+  src?: string | null;
   type?: string | null;
   displayName?: string;
   size?: number;
@@ -58,25 +32,26 @@ type PaymentQrCodeProps = {
 };
 
 /**
- * Shows the real QR from /public/qr when available.
- * Returns null for Zelle (handle-only). Placeholder only if a QR type is expected but the file fails.
+ * Shows the QR image from the payment-method API (`qrCodeUrl`).
+ * Returns null when no URL (e.g. Zelle) — parent shows handle only.
  */
 const PaymentQrCode = ({
+  src,
   type,
   displayName = "payment",
   size = 168,
   className = "",
 }: PaymentQrCodeProps) => {
-  const src = useMemo(() => resolveQrSrc(type), [type]);
+  const typeKey = normalizePaymentType(type);
+  const resolvedSrc =
+    typeKey === "zelle" ? undefined : src?.trim() || undefined;
   const [failed, setFailed] = useState(false);
 
-  // Reset error when switching payment methods (e.g. Zelle → Cash App)
   useEffect(() => {
     setFailed(false);
-  }, [src]);
+  }, [resolvedSrc]);
 
-  // Zelle (and unknown types without assets): render nothing — parent shows handle only
-  if (!src) return null;
+  if (!resolvedSrc) return null;
 
   if (failed) {
     return (
@@ -99,10 +74,9 @@ const PaymentQrCode = ({
       className={`relative overflow-hidden rounded-xl border border-gray-200 bg-white p-2 ${className}`}
       style={{ width: size, height: size }}
     >
-      {/* Plain img avoids Next/Image quirks with local QR assets */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={resolvedSrc}
         alt={`Scan to pay with ${displayName}`}
         width={size - 16}
         height={size - 16}

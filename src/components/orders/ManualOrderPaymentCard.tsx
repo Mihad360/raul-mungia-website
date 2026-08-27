@@ -15,6 +15,7 @@ export type OrderPaymentMethodLike = {
   handle?: string;
   isAutomated?: boolean;
   instructionsForCustomer?: string;
+  qrCodeUrl?: string;
 };
 
 type ManualOrderPaymentCardProps = {
@@ -38,17 +39,18 @@ export const resolvePaymentHandle = (
 ): string | null => {
   if (!method) return null;
 
-  const type = (method.type || "").toLowerCase().replace(/[_-\s]/g, "");
+  const type = (method.type || "").toLowerCase().replace(/[_\-\s]/g, "");
 
-  // Zelle is handle-only — always use the configured handle ($STXResearch1)
-  if (type === "zelle") return envConfig.payment.zelle;
-
+  // Always prefer the handle from the API first
   if (method.handle?.trim()) return method.handle.trim();
 
-  if (type === "cashapp" || type === "cash") {
-    return envConfig.payment.cashApp;
-  }
-  if (type === "venmo") return envConfig.payment.venmo;
+  // Then fall back to env vars / hardcoded defaults per type
+  if (type === "zelle")
+    return envConfig.payment.zelle || process.env.NEXT_PUBLIC_ZELLE_HANDLE || process.env.NEXT_PUBLIC_ZELLE_PHONE || "$STXResearch1";
+  if (type === "cashapp" || type === "cash")
+    return envConfig.payment.cashApp || process.env.NEXT_PUBLIC_CASHAPP_HANDLE || "$STXResearch1";
+  if (type === "venmo")
+    return envConfig.payment.venmo || process.env.NEXT_PUBLIC_VENMO_HANDLE || "@STXRESEARCH";
   return null;
 };
 
@@ -81,6 +83,7 @@ const ManualOrderPaymentCard = ({
       handle?: string;
       instructionsForCustomer?: string;
       displayName?: string;
+      qrCodeUrl?: string;
     }>;
     const live = liveMethods.find(
       (m) =>
@@ -94,6 +97,7 @@ const ManualOrderPaymentCard = ({
       instructionsForCustomer:
         paymentMethod.instructionsForCustomer || live.instructionsForCustomer,
       displayName: paymentMethod.displayName || live.displayName,
+      qrCodeUrl: paymentMethod.qrCodeUrl || live.qrCodeUrl,
     };
   }, [paymentMethod, methodsData]);
 
@@ -105,7 +109,7 @@ const ManualOrderPaymentCard = ({
   const type = (method?.type || "").toLowerCase().replace(/[_-\s]/g, "");
   const instructions = method?.instructionsForCustomer;
   const amount = Number(total || 0).toFixed(2);
-  const showQr = paymentTypeHasQr(type);
+  const showQr = paymentTypeHasQr(type, method?.qrCodeUrl);
 
   return (
     <div
@@ -223,6 +227,7 @@ const ManualOrderPaymentCard = ({
           {showQr && (
             <div className="flex flex-col items-center gap-1.5 mx-auto sm:mx-0">
               <PaymentQrCode
+                src={method?.qrCodeUrl}
                 type={type}
                 displayName={displayName}
                 size={compact ? 112 : 148}

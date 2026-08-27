@@ -33,6 +33,7 @@ import {
   FulfillmentBadge,
 } from "@/utils/orderHelpers";
 import ManualOrderPaymentCard from "@/components/orders/ManualOrderPaymentCard";
+import PickupLocationBlock from "@/components/orders/PickupLocationBlock";
 
 const STATUS_FILTERS: (
   | { value: ""; label: string }
@@ -500,8 +501,12 @@ const LatestOrderPanel = ({ order }: { order: any }) => {
             <p className="text-[10px] uppercase tracking-wide text-emerald-700 font-semibold mb-1">
               Ready for Pickup
             </p>
-            <p className="text-xs text-emerald-900">
-              Your order is ready to collect at our location.
+            <PickupLocationBlock
+              variant="compact"
+              orderNumber={order.orderNumber}
+            />
+            <p className="text-[11px] text-emerald-800 mt-2">
+              Bring order number {order.orderNumber} when you arrive.
             </p>
           </div>
         )}

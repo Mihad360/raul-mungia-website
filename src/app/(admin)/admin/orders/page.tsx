@@ -29,6 +29,7 @@ import RmTable from "@/components/ui/RmTable";
 import RmModal from "@/components/ui/RmModal";
 import RmPagination from "@/components/ui/RmPagination";
 import RmInput from "@/components/ui/RmInput";
+import PickupLocationBlock from "@/components/orders/PickupLocationBlock";
 import {
   useGetAllOrdersAdminQuery,
   useConfirmManualPaymentMutation,
@@ -889,9 +890,12 @@ const OrderDetailsModal = ({
                   </>
                 )}
                 {isPickup && (
-                  <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 inline-block mt-1">
-                    🏠 Local Pickup
-                  </p>
+                  <div className="mt-2">
+                    <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 inline-block mb-2">
+                      Local Pickup
+                    </p>
+                    <PickupLocationBlock variant="compact" />
+                  </div>
                 )}
                 <p className="text-xs text-gray-500 pt-1">
                   {order.shippingAddress?.email}

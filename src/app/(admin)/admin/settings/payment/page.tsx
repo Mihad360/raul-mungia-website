@@ -15,6 +15,10 @@ import {
   Banknote,
   ArrowDownAZ,
   ArrowUpAZ,
+  QrCode,
+  Upload,
+  X,
+  Plus,
 } from "lucide-react";
 import { message } from "antd";
 import RmModal from "@/components/ui/RmModal";
@@ -22,9 +26,24 @@ import RmForm from "@/components/ui/RmForm";
 import RmInput from "@/components/ui/RmInput";
 import {
   useGetAllPaymentMethodsAdminQuery,
+  useCreatePaymentMethodMutation,
   useUpdatePaymentMethodMutation,
   useDeletePaymentMethodMutation,
 } from "@/redux/api/adminApi";
+
+const PAYMENT_TYPE_OPTIONS = [
+  { value: "venmo", label: "Venmo" },
+  { value: "cashapp", label: "Cash App" },
+  { value: "zelle", label: "Zelle" },
+  { value: "echeck", label: "eCheck" },
+  { value: "crypto", label: "Crypto" },
+] as const;
+
+type FormSubmitPayload = {
+  fields: Record<string, unknown>;
+  qrFile: File | null;
+  clearQrCode: boolean;
+};
 
 // ─── Types ────────────────────────────────────────────────────
 type PaymentMethod = {
@@ -35,6 +54,7 @@ type PaymentMethod = {
   isAutomated: boolean;
   handle: string;
   instructionsForCustomer: string;
+  qrCodeUrl?: string;
   displayOrder: number;
   isActive: boolean;
   isDeleted?: boolean;
@@ -156,9 +176,16 @@ const PaymentMethodCard = ({
 
       {/* Handle (if manual) */}
       {!method.isAutomated && method.handle && (
-        <p className="text-xs font-mono text-[#C70A24] mb-3 truncate">
+        <p className="text-xs font-mono text-[#C70A24] mb-2 truncate">
           {method.handle}
         </p>
+      )}
+
+      {!method.isAutomated && method.qrCodeUrl && (
+        <div className="flex items-center gap-1.5 mb-3 text-[10px] text-gray-500">
+          <QrCode size={12} className="text-gray-400" />
+          QR code set
+        </div>
       )}
 
       {/* Actions */}
@@ -182,32 +209,58 @@ const PaymentMethodCard = ({
   );
 };
 
-// ─── Edit Modal ───────────────────────────────────────────────
-const PaymentMethodEditModal = ({
+// ─── Create / Edit Modal ──────────────────────────────────────
+const PaymentMethodFormModal = ({
   isOpen,
   onClose,
   method,
+  mode,
   onSubmit,
   isSubmitting,
 }: {
   isOpen: boolean;
   onClose: () => void;
   method: PaymentMethod | null;
-  onSubmit: (data: any) => Promise<void>;
+  mode: "create" | "edit";
+  onSubmit: (payload: FormSubmitPayload) => Promise<void>;
   isSubmitting: boolean;
 }) => {
+  const isCreate = mode === "create";
   const [isAutomated, setIsAutomated] = useState<boolean>(false);
   const [isActive, setIsActive] = useState<boolean>(true);
+  const [type, setType] = useState("venmo");
+  const [qrFile, setQrFile] = useState<File | null>(null);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
+  const [clearQrCode, setClearQrCode] = useState(false);
 
   useEffect(() => {
-    if (isOpen && method) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsAutomated(method.isAutomated);
-      setIsActive(method.isActive);
-    }
+    if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsAutomated(method?.isAutomated ?? false);
+    setIsActive(method?.isActive ?? true);
+    setType(method?.type || "venmo");
+    setQrFile(null);
+    setQrPreview(null);
+    setClearQrCode(false);
   }, [isOpen, method]);
 
-  if (!method) return null;
+  useEffect(() => {
+    if (!qrFile) {
+      setQrPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(qrFile);
+    setQrPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [qrFile]);
+
+  if (!isOpen || (!isCreate && !method)) return null;
+
+  const existingQr =
+    !isCreate && !clearQrCode && !qrPreview
+      ? method?.qrCodeUrl || null
+      : null;
+  const shownQr = qrPreview || existingQr;
 
   const handleSubmit = async (data: any) => {
     if (!data.displayName?.trim()) {
@@ -215,16 +268,30 @@ const PaymentMethodEditModal = ({
       return;
     }
 
+    const normalizedType = (isCreate ? type : method!.type)
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "");
+    if (!normalizedType) {
+      message.error("Type is required");
+      return;
+    }
+
     await onSubmit({
-      displayName: data.displayName.trim(),
-      description: data.description?.trim() || "",
-      isAutomated,
-      handle: isAutomated ? "" : data.handle?.trim() || "",
-      instructionsForCustomer: isAutomated
-        ? ""
-        : data.instructionsForCustomer?.trim() || "",
-      displayOrder: Number(data.displayOrder) || 0,
-      isActive,
+      fields: {
+        ...(isCreate ? { type: normalizedType } : {}),
+        displayName: data.displayName.trim(),
+        description: data.description?.trim() || "",
+        isAutomated,
+        handle: isAutomated ? "" : data.handle?.trim() || "",
+        instructionsForCustomer: isAutomated
+          ? ""
+          : data.instructionsForCustomer?.trim() || "",
+        displayOrder: Number(data.displayOrder) || 0,
+        isActive,
+      },
+      qrFile: isAutomated ? null : qrFile,
+      clearQrCode: isAutomated ? true : clearQrCode && !qrFile,
     });
   };
 
@@ -232,7 +299,7 @@ const PaymentMethodEditModal = ({
     <RmModal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Edit ${method.displayName}`}
+      title={isCreate ? "Add Payment Method" : `Edit ${method?.displayName}`}
       width="max-w-lg"
       footer={
         <div className="flex gap-3">
@@ -251,35 +318,62 @@ const PaymentMethodEditModal = ({
             className="flex-1 py-2.5 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: "#C70A24" }}
           >
-            {isSubmitting ? "Saving..." : "Update Method"}
+            {isSubmitting
+              ? "Saving..."
+              : isCreate
+                ? "Create Method"
+                : "Update Method"}
           </button>
         </div>
       }
     >
       <RmForm
+        key={isCreate ? "create" : `edit-${method?._id}`}
         id="payment-form"
         onSubmit={handleSubmit}
         defaultValues={{
-          displayName: method.displayName || "",
-          description: method.description || "",
-          handle: method.handle || "",
-          instructionsForCustomer: method.instructionsForCustomer || "",
-          displayOrder: method.displayOrder ?? 0,
+          displayName: method?.displayName || "",
+          description: method?.description || "",
+          handle: method?.handle || "",
+          instructionsForCustomer: method?.instructionsForCustomer || "",
+          displayOrder: method?.displayOrder ?? 0,
         }}
       >
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {/* Type display (read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
+              Type {isCreate && <span className="text-red-500">*</span>}
             </label>
-            <input
-              type="text"
-              value={method.type.toUpperCase()}
-              disabled
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 cursor-not-allowed font-mono"
-            />
-            <p className="text-xs text-gray-400 mt-1">Type cannot be changed</p>
+            {isCreate ? (
+              <>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C70A24]/20 focus:border-[#C70A24]"
+                >
+                  {PAYMENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Only one method per type is allowed
+                </p>
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={(method?.type || "").toUpperCase()}
+                  disabled
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 cursor-not-allowed font-mono"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Type cannot be changed
+                </p>
+              </>
+            )}
           </div>
 
           <RmInput
@@ -344,6 +438,83 @@ const PaymentMethodEditModal = ({
                 placeholder="Step-by-step payment instructions..."
                 rows={4}
               />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  QR Code{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Shown at checkout and on order pages. Leave empty for
+                  handle-only methods (e.g. Zelle).
+                </p>
+
+                {shownQr ? (
+                  <div className="relative inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={shownQr}
+                      alt="QR preview"
+                      className="w-36 h-36 object-contain rounded-lg border border-gray-200 bg-white p-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrFile(null);
+                        setClearQrCode(true);
+                      }}
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 cursor-pointer"
+                      title="Remove QR code"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 w-full py-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
+                    <Upload size={20} className="text-gray-400" />
+                    <span className="text-xs text-gray-600 font-medium">
+                      Upload QR image
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        if (!file) return;
+                        if (!file.type.startsWith("image/")) {
+                          message.error("Please select an image file");
+                          return;
+                        }
+                        setQrFile(file);
+                        setClearQrCode(false);
+                      }}
+                    />
+                  </label>
+                )}
+
+                {shownQr && (
+                  <label className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#C70A24] font-medium cursor-pointer hover:underline">
+                    <Upload size={12} />
+                    Replace image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        if (!file) return;
+                        if (!file.type.startsWith("image/")) {
+                          message.error("Please select an image file");
+                          return;
+                        }
+                        setQrFile(file);
+                        setClearQrCode(false);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
             </>
           )}
 
@@ -435,12 +606,15 @@ export default function PaymentMethodPage() {
     null,
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PaymentMethod | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
 
   // API
   const { data: methodsResponse, isLoading } =
     useGetAllPaymentMethodsAdminQuery({});
+  const [createMethod, { isLoading: isCreating }] =
+    useCreatePaymentMethodMutation();
   const [updateMethod, { isLoading: isUpdating }] =
     useUpdatePaymentMethodMutation();
   const [deleteMethod, { isLoading: isDeleting }] =
@@ -454,11 +628,46 @@ export default function PaymentMethodPage() {
     sortAsc ? a.displayOrder - b.displayOrder : b.displayOrder - a.displayOrder,
   );
 
+  const buildBody = ({
+    fields,
+    qrFile,
+    clearQrCode,
+  }: FormSubmitPayload): Record<string, unknown> | FormData => {
+    const needsMultipart = Boolean(qrFile) || clearQrCode;
+    if (!needsMultipart) return fields;
+
+    const formData = new FormData();
+    formData.append(
+      "data",
+      JSON.stringify({
+        ...fields,
+        ...(clearQrCode ? { clearQrCode: true } : {}),
+      }),
+    );
+    if (qrFile) formData.append("qrCode", qrFile);
+    return formData;
+  };
+
+  const handleCreate = async (payload: FormSubmitPayload) => {
+    try {
+      await createMethod(buildBody(payload)).unwrap();
+      message.success("Payment method created!");
+      setIsCreateOpen(false);
+    } catch (err: any) {
+      message.error(
+        err?.data?.message || err?.message || "Failed to create method",
+      );
+    }
+  };
+
   // Handlers
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (payload: FormSubmitPayload) => {
     if (!editingMethod) return;
     try {
-      await updateMethod({ id: editingMethod._id, body: data }).unwrap();
+      await updateMethod({
+        id: editingMethod._id,
+        body: buildBody(payload),
+      }).unwrap();
       message.success("Payment method updated!");
       setIsEditOpen(false);
       setEditingMethod(null);
@@ -510,13 +719,23 @@ export default function PaymentMethodPage() {
           <p className="text-gray-600">Manage checkout payment options</p>
         </div>
 
-        <button
-          onClick={() => setSortAsc(!sortAsc)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          {sortAsc ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
-          Order
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSortAsc(!sortAsc)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            {sortAsc ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
+            Order
+          </button>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            <Plus size={16} />
+            Add Method
+          </button>
+        </div>
       </div>
 
       {/* Cards Grid */}
@@ -531,9 +750,17 @@ export default function PaymentMethodPage() {
             className="mx-auto text-gray-300 mb-3 stroke-1"
           />
           <p className="text-gray-500">No payment methods configured</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Payment methods are seeded from the backend.
+          <p className="text-sm text-gray-400 mt-1 mb-4">
+            Add Venmo, Cash App, Zelle, or other checkout options.
           </p>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            <Plus size={16} />
+            Add Method
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -554,13 +781,23 @@ export default function PaymentMethodPage() {
       )}
 
       {/* Modals */}
-      <PaymentMethodEditModal
+      <PaymentMethodFormModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        method={null}
+        mode="create"
+        onSubmit={handleCreate}
+        isSubmitting={isCreating}
+      />
+
+      <PaymentMethodFormModal
         isOpen={isEditOpen}
         onClose={() => {
           setIsEditOpen(false);
           setEditingMethod(null);
         }}
         method={editingMethod}
+        mode="edit"
         onSubmit={handleUpdate}
         isSubmitting={isUpdating}
       />

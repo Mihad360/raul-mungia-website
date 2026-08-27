@@ -337,7 +337,7 @@ const adminApi = baseApi.injectEndpoints({
       providesTags: ["paymentMethod"],
     }),
     createPaymentMethod: build.mutation({
-      query: (body) => ({
+      query: (body: Record<string, unknown> | FormData) => ({
         url: "/admin/payment-method/create",
         method: "POST",
         data: body,
@@ -345,7 +345,13 @@ const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["paymentMethod"],
     }),
     updatePaymentMethod: build.mutation({
-      query: ({ id, body }) => ({
+      query: ({
+        id,
+        body,
+      }: {
+        id: string;
+        body: Record<string, unknown> | FormData;
+      }) => ({
         url: `/admin/payment-method/${id}`,
         method: "PATCH",
         data: body,

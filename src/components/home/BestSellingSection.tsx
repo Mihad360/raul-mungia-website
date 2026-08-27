@@ -49,8 +49,8 @@ const BestSellingSection = () => {
   // Fetch products (you might want to add a "best selling" flag or sort by sales)
   const { data, isLoading, isError } = useGetAllProductsQuery({
     page: 1,
-    limit: 50, // Get enough products to show categories
-    sort: "-salesCount", // Sort by best selling (if you have sales count field)
+    limit: 50,
+    sort: "displayOrder createdAt",
   });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps

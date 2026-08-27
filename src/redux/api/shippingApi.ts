@@ -27,6 +27,13 @@ const shippingApi = baseApi.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    getPickupLocation: builder.query({
+      query: () => ({
+        url: "/shipping/pickup-location",
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -35,4 +42,5 @@ export const {
   useValidateShippingAddressMutation,
   useTrackShipmentQuery,
   useLazyTrackShipmentQuery,
+  useGetPickupLocationQuery,
 } = shippingApi;

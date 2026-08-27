@@ -73,6 +73,7 @@ type Product = {
   categoryName?: string;
   variants: Variant[];
   lowStockThreshold?: number;
+  displayOrder?: number;
   isActive?: boolean;
   certificate?: ProductCertificate | null;
   createdAt?: string;
@@ -444,6 +445,10 @@ const ProductFormModal = ({
         additionalInformation: data.additionalInformation?.trim() || "",
         compliance: data.compliance?.trim() || "",
         lowStockThreshold: Number(data.lowStockThreshold) || 20,
+        displayOrder:
+          data.displayOrder === "" || data.displayOrder == null
+            ? undefined
+            : Number(data.displayOrder),
         variants: variants.map((v) => ({
           size: v.size.trim(),
           price: Number(v.price),
@@ -479,6 +484,7 @@ const ProductFormModal = ({
       additionalInformation: product?.additionalInformation || "",
       compliance: product?.compliance || "",
       lowStockThreshold: product?.lowStockThreshold || 20,
+      displayOrder: product?.displayOrder ?? "",
     }),
     // Reset form fields only when opening for a different product / create flow
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -543,6 +549,15 @@ const ProductFormModal = ({
                   options={categoryOptions}
                   placeholder="Select category"
                 />
+                <RmInput
+                  name="displayOrder"
+                  label="Display order"
+                  type="number"
+                  placeholder="0"
+                  helpText="Lower numbers show first on the shop (0, 1, 2…)"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <RmInput
                   name="lowStockThreshold"
                   label="Low Stock Threshold"
@@ -1336,6 +1351,7 @@ export default function ProductsPage() {
       page: currentPage,
       limit: itemsPerPage,
       searchTerm: searchQuery || undefined,
+      sort: "displayOrder createdAt",
     });
 
   const { data: categoriesData } = useGetAllCategoriesQuery({});
@@ -1483,6 +1499,16 @@ export default function ProductsPage() {
             <CoaIndicator hasCertificate={!!product.certificate?.url} />
           </div>
         </div>
+      ),
+    },
+    {
+      key: "displayOrder",
+      title: "Order",
+      align: "center" as const,
+      render: (product: Product) => (
+        <span className="inline-flex items-center justify-center min-w-[28px] h-6 px-2 rounded-full bg-gray-100 text-gray-800 text-xs font-semibold tabular-nums">
+          {product.displayOrder ?? 0}
+        </span>
       ),
     },
     {

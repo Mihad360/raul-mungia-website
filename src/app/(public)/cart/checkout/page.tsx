@@ -34,6 +34,7 @@ import { couponStorage } from "@/utils/couponStorage";
 import { usePlaceOrderMutation } from "@/redux/api/orderApi";
 import { useGetMyProfileQuery } from "@/redux/api/authApi";
 import ReconstitutionSolutionToggle from "@/components/cart/ReconstitutionSolutionToggle";
+import PickupLocationBlock from "@/components/orders/PickupLocationBlock";
 import PaymentQrCode, {
   paymentTypeHasQr,
 } from "@/components/shared/PaymentQrCode";
@@ -61,6 +62,7 @@ interface IPaymentMethod {
   description?: string;
   handle?: string;
   instructionsForCustomer?: string;
+  qrCodeUrl?: string;
   isAutomated: boolean;
   displayOrder?: number;
 }
@@ -126,14 +128,6 @@ const US_STATES = [
   { code: "WI", name: "Wisconsin" },
   { code: "WY", name: "Wyoming" },
 ];
-
-// ⚠️ Replace these with values from admin settings or env later
-const PICKUP_LOCATION = {
-  name: "STX Research Office — Corpus Christi",
-  address: "Contact us for the exact pickup address after placing your order",
-  hours: "Mon–Fri, 9:00 AM – 6:00 PM CST",
-  city: "Corpus Christi",
-};
 
 const CheckoutPage = () => {
   const router = useRouter();
@@ -457,31 +451,8 @@ const CheckoutPage = () => {
               </div>
 
               {isPickup && (
-                <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Home
-                      size={18}
-                      className="text-emerald-700 mt-0.5 flex-shrink-0"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-emerald-900 mb-1">
-                        Pickup Information
-                      </p>
-                      <p className="text-xs text-emerald-800 leading-relaxed">
-                        <strong>{PICKUP_LOCATION.name}</strong>
-                        <br />
-                        {PICKUP_LOCATION.address}
-                        <br />
-                        <span className="text-emerald-700">
-                          Hours: {PICKUP_LOCATION.hours}
-                        </span>
-                      </p>
-                      <p className="text-xs text-emerald-700 mt-2 italic">
-                        We&apos;ll notify you by email and text when your order
-                        is ready to pick up.
-                      </p>
-                    </div>
-                  </div>
+                <div className="mt-4">
+                  <PickupLocationBlock variant="checkout" />
                 </div>
               )}
             </SectionCard>
@@ -1068,18 +1039,22 @@ const PaymentMethodRow = ({
 };
 
 const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
-  // Resolve handle: API value first, env fallback.
-  // Zelle is always handle-only ($STXResearch1) — never a QR.
-  const typeKey = (method.type || "").toLowerCase().replace(/[_-\s]/g, "");
-  const resolvedHandle =
-    typeKey === "zelle"
-      ? envConfig.payment.zelle
-      : method.handle ||
-        (typeKey === "cashapp" || typeKey === "cash"
-          ? envConfig.payment.cashApp
-          : typeKey === "venmo"
-            ? envConfig.payment.venmo
-            : null);
+  // Resolve handle: API value first, env fallback, then hardcoded defaults.
+  // Zelle is always handle-only — never a QR.
+  const typeKey = (method.type || "").toLowerCase().replace(/[_\-\s]/g, "");
+
+  const resolvedHandle = (() => {
+    // Always prefer the handle the API returns
+    if (method.handle?.trim()) return method.handle.trim();
+    // Then env vars / hardcoded defaults per type
+    if (typeKey === "zelle")
+      return envConfig.payment.zelle || process.env.NEXT_PUBLIC_ZELLE_HANDLE || process.env.NEXT_PUBLIC_ZELLE_PHONE || "$STXResearch1";
+    if (typeKey === "cashapp" || typeKey === "cash")
+      return envConfig.payment.cashApp || process.env.NEXT_PUBLIC_CASHAPP_HANDLE || "$STXResearch1";
+    if (typeKey === "venmo")
+      return envConfig.payment.venmo || process.env.NEXT_PUBLIC_VENMO_HANDLE || "@STXRESEARCH";
+    return null;
+  })();
 
   if (method.isAutomated) {
     return (
@@ -1136,17 +1111,17 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
             </p>
           )}
         </div>
-        {paymentTypeHasQr(method.type) && (
+        {paymentTypeHasQr(typeKey, method.qrCodeUrl) ? (
           <div className="flex flex-col items-center gap-1.5 mx-auto sm:mx-0">
             <PaymentQrCode
-              type={method.type}
+              src={method.qrCodeUrl}
+              type={typeKey}
               displayName={method.displayName}
               size={140}
             />
             <p className="text-[10px] text-blue-700/80">Scan to pay</p>
           </div>
-        )}
-        {typeKey === "zelle" && resolvedHandle && (
+        ) : typeKey === "zelle" && resolvedHandle ? (
           <div className="w-full sm:w-auto sm:min-w-[140px] rounded-xl border border-blue-200 bg-white px-3 py-3 text-center">
             <p className="text-[10px] uppercase tracking-wide text-blue-600 mb-1">
               Zelle handle
@@ -1156,7 +1131,7 @@ const PaymentMethodDetails = ({ method }: { method: IPaymentMethod }) => {
             </p>
             <p className="text-[10px] text-blue-600/80 mt-1">No QR — send to handle</p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ const ShopPageContent = () => {
   const [addToCart] = useAddToCartMutation();
 
   const sortMap: Record<string, string> = {
-    default: "",
+    default: "displayOrder createdAt",
     "price-low": "variants.price",
     "price-high": "-variants.price",
     newest: "-createdAt",

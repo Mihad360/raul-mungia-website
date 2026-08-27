@@ -36,6 +36,7 @@ import {
 import ManualOrderPaymentCard, {
   resolvePaymentHandle,
 } from "@/components/orders/ManualOrderPaymentCard";
+import PickupLocationBlock from "@/components/orders/PickupLocationBlock";
 
 export default function OrderDetailPage({
   params,
@@ -298,20 +299,17 @@ export default function OrderDetailPage({
           {order.fulfillmentType === "pickup" ? (
             <Section title="Pickup Information" icon={<Home size={18} />}>
               <div className="text-sm space-y-2">
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                  <p className="font-semibold text-emerald-900 mb-1">
-                    Local Pickup Order
+                <PickupLocationBlock
+                  variant={
+                    order.status === "ready_for_pickup" ? "ready" : "checkout"
+                  }
+                  orderNumber={order.orderNumber}
+                />
+                {order.pickupReadyAt && (
+                  <p className="text-xs font-semibold text-emerald-800 px-1">
+                    ✓ Ready since {formatDate(order.pickupReadyAt)}
                   </p>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    You&apos;ll be notified by email when your order is ready to
-                    collect.
-                    {order.pickupReadyAt && (
-                      <span className="block mt-1 font-semibold">
-                        ✓ Ready since {formatDate(order.pickupReadyAt)}
-                      </span>
-                    )}
-                  </p>
-                </div>
+                )}
                 <div className="pt-2">
                   <p className="text-xs text-gray-500">Contact</p>
                   <p className="font-medium text-gray-900">
