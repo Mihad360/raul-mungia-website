@@ -40,6 +40,124 @@ const SectionLoader = () => (
   </div>
 );
 
+// ─── Revenue layers ───────────────────────────────────────────
+/**
+ * Money moves through three distinct states, and only two of them are revenue:
+ *   Collected  — payment confirmed, sale not reversed (cash in hand)
+ *   Earned     — collected AND delivered or picked up
+ *   Awaiting   — order placed, money not received yet: NOT revenue
+ */
+const RevenueLayers = ({
+  layers,
+  isLoading,
+}: {
+  layers: any;
+  isLoading: boolean;
+}) => {
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-100">
+        <SectionLoader />
+      </div>
+    );
+  }
+
+  const collected = layers?.collected || 0;
+  const earned = layers?.earned || 0;
+  const inFulfillment = layers?.inFulfillment || 0;
+  const awaiting = layers?.awaitingPayment || 0;
+  const earnedShare = collected > 0 ? (earned / collected) * 100 : 0;
+
+  const rows = [
+    {
+      label: "Earned",
+      hint: "Paid and delivered or picked up",
+      value: earned,
+      orders: layers?.earnedOrders || 0,
+      color: "#10b981",
+    },
+    {
+      label: "In fulfillment",
+      hint: "Paid, not delivered yet",
+      value: inFulfillment,
+      orders: Math.max((layers?.collectedOrders || 0) - (layers?.earnedOrders || 0), 0),
+      color: "#f59e0b",
+    },
+    {
+      label: "Awaiting payment",
+      hint: "Placed, money not received — not counted as revenue",
+      value: awaiting,
+      orders: layers?.awaitingPaymentOrders || 0,
+      color: "#94a3b8",
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-100 p-6">
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Where the money stands
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Revenue is counted only once a payment is confirmed
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500">Collected</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {formatCurrency(collected)}
+          </p>
+        </div>
+      </div>
+
+      {/* Share of collected money that is fully delivered */}
+      <div className="w-full bg-gray-100 rounded-full h-2 mb-1.5 overflow-hidden">
+        <div
+          className="h-2 rounded-full transition-all"
+          style={{
+            width: `${Math.min(earnedShare, 100)}%`,
+            backgroundColor: "#10b981",
+          }}
+        />
+      </div>
+      <p className="text-xs text-gray-500 mb-5">
+        {earnedShare.toFixed(0)}% of collected revenue is fully delivered
+      </p>
+
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-start justify-between gap-4 pb-3 border-b border-gray-100 last:border-0 last:pb-0"
+          >
+            <div className="flex items-start gap-2.5 min-w-0">
+              <span
+                className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                style={{ backgroundColor: row.color }}
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">
+                  {row.label}
+                </p>
+                <p className="text-xs text-gray-500">{row.hint}</p>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-sm font-semibold text-gray-900">
+                {formatCurrency(row.value)}
+              </p>
+              <p className="text-xs text-gray-400">
+                {row.orders} {row.orders === 1 ? "order" : "orders"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── KPI Card ─────────────────────────────────────────────────
 const KPICard = ({
   icon: Icon,
@@ -266,7 +384,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
             icon={DollarSign}
-            title="Total Revenue"
+            title="Revenue Collected"
             value={formatCurrency(stats?.totalRevenue?.total || 0)}
             trend={stats?.totalRevenue?.percentChange || 0}
             bgColor="#10b981"
@@ -280,14 +398,14 @@ export default function DashboardPage() {
           />
           <KPICard
             icon={Users}
-            title="Total Customers"
+            title="Registered Customers"
             value={(stats?.totalCustomers?.total || 0).toLocaleString()}
             trend={stats?.totalCustomers?.percentChange || 0}
             bgColor="#a855f7"
           />
           <KPICard
             icon={XCircle}
-            title="Total Cancel Order"
+            title="Cancelled & Refunded"
             value={(stats?.totalCancelledOrders?.total || 0).toLocaleString()}
             trend={stats?.totalCancelledOrders?.percentChange || 0}
             bgColor="#ef4444"
@@ -297,8 +415,12 @@ export default function DashboardPage() {
 
       {/* Charts and Products Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <RevenueChart data={chartData} isLoading={chartLoading} />
+          <RevenueLayers
+            layers={stats?.revenueLayers}
+            isLoading={statsLoading}
+          />
         </div>
         <div>
           <TopProducts products={topProducts} isLoading={topLoading} />

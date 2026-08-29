@@ -121,6 +121,8 @@ type AdminOrder = {
   createdAt: string;
   updatedAt: string;
   paidAt?: string;
+  amountPaid?: number | null;
+  refundedAmount?: number;
   shippedAt?: string;
   deliveredAt?: string;
   fulfillmentType: "pickup" | "shipping"; // NEW
@@ -1150,6 +1152,15 @@ const RefundOrderModal = ({
   const [reason, setReason] = useState("");
   const [refund, { isLoading }] = useProcessRefundMutation();
 
+  // Refunds settle against what was actually received, and only the unrefunded
+  // remainder is still available.
+  const settledAmount =
+    typeof order.amountPaid === "number" && order.amountPaid > 0
+      ? order.amountPaid
+      : order.total;
+  const alreadyRefunded = order.refundedAmount || 0;
+  const refundable = Number((settledAmount - alreadyRefunded).toFixed(2));
+
   const handleSubmit = async () => {
     if (!reason.trim()) {
       message.error("Refund reason is required");
@@ -1161,8 +1172,10 @@ const RefundOrderModal = ({
         message.error("Invalid refund amount");
         return;
       }
-      if (refundAmount > order.total) {
-        message.error("Refund amount cannot exceed order total");
+      if (refundAmount > refundable) {
+        message.error(
+          `Refund amount cannot exceed the remaining balance of $${refundable.toFixed(2)}`,
+        );
         return;
       }
     }
@@ -1211,9 +1224,18 @@ const RefundOrderModal = ({
     >
       <div className="space-y-4">
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-800">
-          Order total: <strong>${order.total?.toFixed(2)}</strong>
+          Amount paid: <strong>${settledAmount.toFixed(2)}</strong>
+          {alreadyRefunded > 0 && (
+            <>
+              {" · "}already refunded:{" "}
+              <strong>${alreadyRefunded.toFixed(2)}</strong>
+            </>
+          )}
           <p className="mt-1 text-[11px]">
-            Leave amount empty for full refund.
+            Leave the amount empty to refund the full remaining balance of $
+            {refundable.toFixed(2)}. A partial refund keeps the order paid and
+            leaves stock as-is; refunding the full balance reverses the sale and
+            restores stock.
           </p>
         </div>
 
@@ -1225,10 +1247,10 @@ const RefundOrderModal = ({
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Full refund: ${order.total?.toFixed(2)}`}
+            placeholder={`Full refund: ${refundable.toFixed(2)}`}
             step="0.01"
             min="0"
-            max={order.total}
+            max={refundable}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-300 bg-gray-50"
           />
         </div>

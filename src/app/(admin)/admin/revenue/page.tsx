@@ -173,6 +173,87 @@ const RevenueChart = ({
   );
 };
 
+// ─── Revenue Layers ───────────────────────────────────────────
+/**
+ * Splits collected cash into delivered vs still-in-fulfillment, and shows the
+ * unpaid pipeline beside it — clearly outside revenue.
+ */
+const RevenueLayerCards = ({
+  layers,
+  isLoading,
+}: {
+  layers: any;
+  isLoading: boolean;
+}) => {
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-100">
+        <SectionLoader />
+      </div>
+    );
+  }
+
+  const cards = [
+    {
+      label: "Earned",
+      hint: "Paid and delivered or picked up",
+      value: layers?.earned || 0,
+      orders: layers?.earnedOrders || 0,
+      color: "#10b981",
+      isRevenue: true,
+    },
+    {
+      label: "In Fulfillment",
+      hint: "Paid, awaiting delivery or pickup",
+      value: layers?.inFulfillment || 0,
+      orders: Math.max(
+        (layers?.collectedOrders || 0) - (layers?.earnedOrders || 0),
+        0,
+      ),
+      color: "#f59e0b",
+      isRevenue: true,
+    },
+    {
+      label: "Awaiting Payment",
+      hint: "Not revenue — money not received yet",
+      value: layers?.awaitingPayment || 0,
+      orders: layers?.awaitingPaymentOrders || 0,
+      color: "#94a3b8",
+      isRevenue: false,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          className={`rounded-lg border p-5 ${
+            card.isRevenue
+              ? "bg-white border-gray-100"
+              : "bg-gray-50 border-dashed border-gray-300"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: card.color }}
+            />
+            <p className="text-sm font-semibold text-gray-900">{card.label}</p>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 mb-1">
+            {formatCurrency(card.value)}
+          </p>
+          <p className="text-xs text-gray-500">
+            {card.orders} {card.orders === 1 ? "order" : "orders"} ·{" "}
+            {card.hint}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ─── Revenue by Product (Horizontal Bars) ─────────────────────
 const RevenueByProduct = ({
   data,
@@ -188,9 +269,15 @@ const RevenueByProduct = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Revenue by Product
-      </h3>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Product Sales
+        </h3>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Item totals before order discounts and shipping, so these won&apos;t
+          match the revenue card above.
+        </p>
+      </div>
       {isLoading ? (
         <SectionLoader />
       ) : products.length === 0 ? (
@@ -227,7 +314,7 @@ const RevenueByProduct = ({
             ))}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-500">
-            <span>Total Revenue:</span>
+            <span>All products:</span>
             <span className="font-semibold text-gray-900">
               {formatCurrency(data?.totalRevenue || 0)}
             </span>
@@ -363,7 +450,7 @@ export default function RevenuePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
-            title="Total Revenue"
+            title="Revenue Collected"
             value={formatCurrency(stats?.totalRevenue?.total || 0)}
             icon={DollarSign}
             trend={stats?.totalRevenue?.percentChange || 0}
@@ -392,6 +479,9 @@ export default function RevenuePage() {
           />
         </div>
       )}
+
+      {/* How the collected money splits, plus the unpaid pipeline */}
+      <RevenueLayerCards layers={stats?.revenueLayers} isLoading={statsLoading} />
 
       {/* Revenue Chart */}
       <RevenueChart data={chart} isLoading={chartLoading} />

@@ -33,6 +33,8 @@ import RmSelect from "@/components/ui/RmSelect";
 import RmPagination from "@/components/ui/RmPagination";
 import RmTable from "@/components/ui/RmTable";
 import { useGetAllCategoriesQuery } from "@/redux/api/categoryApi";
+import { axiosInstance } from "@/lib/axios/axiosInstance";
+import envConfig from "@/config/envConfig";
 import {
   useGetAllProductsAdminQuery,
   useCreateProductMutation,
@@ -771,6 +773,7 @@ const CoaManagementSection = ({
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [batchNumber, setBatchNumber] = useState("");
   const [testDate, setTestDate] = useState("");
+  const [isOpeningFile, setIsOpeningFile] = useState(false);
 
   const [uploadCert, { isLoading: isUploading }] =
     useUploadProductCertificateMutation();
@@ -833,6 +836,38 @@ const CoaManagementSection = ({
       if (updatedProduct) onUpdated(updatedProduct);
     } catch (err: any) {
       message.error(err?.data?.message || "Failed to upload certificate");
+    }
+  };
+
+  // Cloudinary serves the stored PDF as a raw download, so open the API's
+  // inline stream in a new tab instead of the stored URL.
+  const handleView = async () => {
+    setIsOpeningFile(true);
+    try {
+      const response = await axiosInstance.get(
+        `${envConfig.baseApi}/product/${product._id}/certificate/file`,
+        { responseType: "blob" },
+      );
+      const blob = (response as unknown as { data: Blob }).data;
+      const objectUrl = URL.createObjectURL(
+        new Blob([blob], {
+          type:
+            product.certificate?.fileType === "pdf"
+              ? "application/pdf"
+              : blob.type || "image/jpeg",
+        }),
+      );
+      window.open(objectUrl, "_blank", "noopener,noreferrer");
+      // Give the new tab time to load before releasing the blob
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (err: any) {
+      message.error(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          "Could not open the certificate",
+      );
+    } finally {
+      setIsOpeningFile(false);
     }
   };
 
@@ -912,15 +947,16 @@ const CoaManagementSection = ({
             </div>
 
             <div className="flex gap-2">
-              <a
-                href={product.certificate.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              <button
+                type="button"
+                onClick={handleView}
+                disabled={isOpeningFile}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
                 style={{ backgroundColor: "#C70A24" }}
               >
-                View <ExternalLink size={11} />
-              </a>
+                {isOpeningFile ? "Opening..." : "View"}{" "}
+                <ExternalLink size={11} />
+              </button>
               <button
                 type="button"
                 onClick={handleRemove}

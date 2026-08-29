@@ -100,7 +100,21 @@ const SalesRevenueChart = ({
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="label" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
+              {/* Dollars and order counts need separate scales, otherwise the
+                  sales line sits flat on the axis. */}
+              <YAxis
+                yAxisId="revenue"
+                stroke="#10b981"
+                fontSize={12}
+                tickFormatter={(value) => formatCurrency(Number(value))}
+              />
+              <YAxis
+                yAxisId="sales"
+                orientation="right"
+                stroke="#3b82f6"
+                fontSize={12}
+                allowDecimals={false}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "white",
@@ -122,6 +136,7 @@ const SalesRevenueChart = ({
               />
               <Legend />
               <Area
+                yAxisId="revenue"
                 type="monotone"
                 dataKey="revenue"
                 stroke="#10b981"
@@ -130,6 +145,7 @@ const SalesRevenueChart = ({
                 name="Revenue"
               />
               <Area
+                yAxisId="sales"
                 type="monotone"
                 dataKey="sales"
                 stroke="#3b82f6"
@@ -157,9 +173,12 @@ const RevenueByProductPanel = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Revenue by Product
-      </h3>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Product Sales</h3>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Item totals before order discounts and shipping
+        </p>
+      </div>
       {isLoading ? (
         <SectionLoader />
       ) : products.length === 0 ? (
@@ -253,7 +272,7 @@ export default function AnalyticsPage() {
             color="#10b981"
           />
           <KPICard
-            title="Customers"
+            title="Paying Customers"
             value={(stats?.customers || 0).toLocaleString()}
             icon={Users}
             color="#a855f7"

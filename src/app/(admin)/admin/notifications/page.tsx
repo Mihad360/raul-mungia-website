@@ -165,6 +165,7 @@ const getStyle = (type: string) =>
 // Only routes that actually exist in the admin area. Types absent from this map
 // open a details dialog instead of navigating, so they can never hit a 404.
 const typeRoutes: Partial<Record<NotificationType, string>> = {
+  new_contact_message: "/admin/contact-messages",
   user_registration: "/admin/customers",
   low_stock: "/admin/products",
   out_of_stock: "/admin/products",

@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   ChartBarIcon,
+  MessageSquare,
 } from "lucide-react";
 
 export const SIDEBAR_MENU_ITEMS = [
@@ -36,6 +37,11 @@ export const SIDEBAR_MENU_ITEMS = [
     label: "Products",
     href: "/admin/products",
     icon: Package,
+  },
+  {
+    label: "Contact Messages",
+    href: "/admin/contact-messages",
+    icon: MessageSquare,
   },
   {
     label: "Analytics",

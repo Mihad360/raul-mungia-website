@@ -36,6 +36,8 @@ import {
 } from "@/redux/api/wishlistApi";
 import { Loader } from "@/components/shared/Loader";
 import { getClientToken } from "@/lib/auth/cookies.client";
+import { axiosInstance } from "@/lib/axios/axiosInstance";
+import envConfig from "@/config/envConfig";
 
 interface IProductVariant {
   _id: string;
@@ -903,7 +905,67 @@ const CoaModal = ({
   );
 
   const certificate = data?.data?.certificate;
-  console.log(data);
+
+  // The stored file lives on Cloudinary as a raw asset, which browsers download
+  // instead of rendering. Streaming it through the API with our auth header and
+  // viewing it as a blob keeps the PDF inline and the source URL private.
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !isLoggedIn || !certificate) return;
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    const loadFile = async () => {
+      try {
+        const response = await axiosInstance.get(
+          `${envConfig.baseApi}/product/${productId}/certificate/file`,
+          { responseType: "blob" },
+        );
+        const blob = (response as unknown as { data: Blob }).data;
+        if (cancelled || !blob) return;
+
+        objectUrl = URL.createObjectURL(
+          new Blob([blob], {
+            type:
+              certificate.fileType === "pdf"
+                ? "application/pdf"
+                : blob.type || "image/jpeg",
+          }),
+        );
+        setFileUrl(objectUrl);
+      } catch (err) {
+        if (cancelled) return;
+        const failure = err as {
+          response?: { status?: number; data?: { message?: string } };
+        };
+        if (failure?.response?.status === 401) {
+          setSessionExpired(true);
+          return;
+        }
+        setFileError(
+          failure?.response?.data?.message ||
+            "The certificate file could not be opened.",
+        );
+      }
+    };
+
+    loadFile();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setFileUrl(null);
+      setFileError(null);
+    };
+  }, [isOpen, isLoggedIn, certificate, productId]);
+
+  const showLoginPrompt = !isLoggedIn || sessionExpired;
+  // Still streaming: metadata has arrived but the file has not resolved yet.
+  const fileLoading = !!certificate && !fileUrl && !fileError;
 
   const formatDate = (date?: string) => {
     if (!date) return "—";
@@ -947,18 +1009,21 @@ const CoaModal = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          {/* CASE 1: Not logged in */}
-          {!isLoggedIn && (
+          {/* CASE 1: Not logged in, or the session expired mid-visit */}
+          {showLoginPrompt && (
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <Lock size={28} className="text-gray-500" />
               </div>
               <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Log in to view this Certificate
+                {sessionExpired
+                  ? "Your session has expired"
+                  : "Log in to view this Certificate"}
               </h4>
               <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
-                Certificates of Analysis are available to registered customers.
-                Log in or create a free account to view independent lab results.
+                {sessionExpired
+                  ? "Please log in again to view this Certificate of Analysis."
+                  : "Certificates of Analysis are available to registered customers. Log in or create a free account to view independent lab results."}
               </p>
 
               {publicCertInfo && (
@@ -1014,31 +1079,35 @@ const CoaModal = ({
           )}
 
           {/* CASE 2: Loading */}
-          {isLoggedIn && isLoading && (
+          {!showLoginPrompt && (isLoading || fileLoading) && (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
               <Loader2 size={32} className="animate-spin text-gray-400" />
               <p className="text-sm text-gray-500">Loading certificate...</p>
             </div>
           )}
 
-          {/* CASE 3: Error */}
-          {isLoggedIn && isError && (
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-                <X size={28} className="text-red-500" />
+          {/* CASE 3: Error, including a product with no COA on file */}
+          {!showLoginPrompt &&
+            !isLoading &&
+            !fileLoading &&
+            (isError || fileError || !certificate) && (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                  <X size={28} className="text-red-500" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  Could not load certificate
+                </h4>
+                <p className="text-sm text-gray-500">
+                  {fileError ||
+                    (error as { data?: { message?: string } })?.data?.message ||
+                    "No certificate of analysis is available for this product yet."}
+                </p>
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Could not load certificate
-              </h4>
-              <p className="text-sm text-gray-500">
-                {(error as { data?: { message?: string } })?.data?.message ||
-                  "Please try again in a moment."}
-              </p>
-            </div>
-          )}
+            )}
 
           {/* CASE 4: Logged-in + Loaded — show certificate */}
-          {isLoggedIn && certificate && certificate.url && (
+          {!showLoginPrompt && certificate && fileUrl && (
             <div className="flex flex-col">
               {/* Metadata bar */}
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -1075,7 +1144,7 @@ const CoaModal = ({
               <div className="bg-gray-100 min-h-[400px] sm:min-h-[500px]">
                 {certificate.fileType === "pdf" ? (
                   <iframe
-                    src={`${certificate.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                    src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                     className="w-full h-[60vh]"
                     title="Certificate of Analysis"
                     // Block right-click → "Save as" menu
@@ -1083,13 +1152,13 @@ const CoaModal = ({
                   />
                 ) : (
                   <div className="p-4 flex items-center justify-center min-h-[60vh] relative">
-                    <Image
-                      src={certificate.url}
+                    {/* Blob URL — next/image optimization can't apply here */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={fileUrl}
                       alt="Certificate of Analysis"
-                      width={800}
-                      height={1100}
                       className="max-w-full max-h-[60vh] w-auto h-auto object-contain rounded"
-                      unoptimized
+                      onContextMenu={(e) => e.preventDefault()}
                     />
                   </div>
                 )}

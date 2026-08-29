@@ -32,6 +32,7 @@ export const baseApi = createApi({
     "dashboard",
     "shipping-policy",
     "store-settings",
+    "contact",
   ],
   baseQuery: axiosBaseQuery({
     baseUrl: envConfig.baseApi as string,
