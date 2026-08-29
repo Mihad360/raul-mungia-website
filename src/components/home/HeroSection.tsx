@@ -8,34 +8,29 @@ const HeroSection = () => {
   return (
     <section className="w-full bg-white pt-14 pb-0">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-6">
-          <p
-            className="text-sm md:text-base tracking-[0.18em] uppercase text-[#C70A24] font-semibold mb-3"
-            style={{ fontFamily: "Georgia, serif" }}
-          >
-            Research. Innovate. Elevate.
-          </p>
+        <div className="flex flex-col items-center text-center mb-10">
           <h1
-            className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-4"
+            className="flex flex-col text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-[1.08]"
             style={{ fontFamily: "Georgia, serif" }}
           >
-            Premium Research peptides For
-            <br />
-            Precision Science
+            <span className="text-gray-900">Research.</span>
+            <span className="text-gray-900">Innovate.</span>
+            <span className="text-[#C70A24]">Elevate.</span>
           </h1>
-          <p className="text-gray-500 text-base mb-7">
+
+          <span className="block w-16 h-px bg-gray-200 mt-8 mb-6" />
+
+          <p className="text-gray-500 text-base md:text-lg max-w-md">
             Premium peptides. Fair price. Zero compromise.
           </p>
 
-          <div className="flex items-center justify-center gap-4">
-            <Link
-              href="/shop"
-              className="px-7 py-3 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#C70A24" }}
-            >
-              Shop Now
-            </Link>
-          </div>
+          <Link
+            href="/shop"
+            className="mt-8 px-8 py-3.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#C70A24" }}
+          >
+            Shop Now
+          </Link>
         </div>
 
         <div className="relative w-full rounded-2xl overflow-hidden bg-black">

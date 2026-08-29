@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -21,7 +20,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { message } from "antd";
+import { Modal, message } from "antd";
 import {
   useGetMyNotificationsQuery,
   useMarkNotificationAsReadMutation,
@@ -163,6 +162,14 @@ const typeStyles: Record<string, { icon: any; color: string; bg: string }> = {
 const getStyle = (type: string) =>
   typeStyles[type] || { icon: Bell, color: "text-gray-700", bg: "bg-gray-50" };
 
+// Only routes that actually exist in the admin area. Types absent from this map
+// open a details dialog instead of navigating, so they can never hit a 404.
+const typeRoutes: Partial<Record<NotificationType, string>> = {
+  user_registration: "/admin/customers",
+  low_stock: "/admin/products",
+  out_of_stock: "/admin/products",
+};
+
 // ─── Relative time helper ─────────────────────────────────
 const timeAgo = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -183,6 +190,7 @@ export default function AdminNotificationsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [details, setDetails] = useState<Notification | null>(null);
 
   const { data: notificationsResponse, isLoading } = useGetMyNotificationsQuery(
     {
@@ -214,28 +222,19 @@ export default function AdminNotificationsPage() {
       }
     }
 
-    // Navigate based on type/data
     const orderId = n.data?.orderId as string | undefined;
     if (orderId) {
       router.push(`/admin/orders`);
       return;
     }
-    if (n.type === "new_contact_message") {
-      router.push(`/admin/contact-messages`);
+
+    const route = typeRoutes[n.type];
+    if (route) {
+      router.push(route);
       return;
     }
-    if (n.type === "user_registration") {
-      router.push(`/admin/customers`);
-      return;
-    }
-    if (n.type === "low_stock" || n.type === "out_of_stock") {
-      router.push(`/admin/products`);
-      return;
-    }
-    if (n.type === "newsletter_signup") {
-      router.push(`/admin/newsletter`);
-      return;
-    }
+
+    setDetails(n);
   };
 
   const handleMarkAllRead = async () => {
@@ -377,6 +376,42 @@ export default function AdminNotificationsPage() {
           />
         </div>
       )}
+
+      <Modal
+        open={!!details}
+        onCancel={() => setDetails(null)}
+        footer={null}
+        title={details?.title}
+      >
+        {details && (
+          <div className="space-y-3 pt-2">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              {details.message}
+            </p>
+            {details.data && Object.keys(details.data).length > 0 && (
+              <dl className="text-sm border-t border-gray-100 pt-3 space-y-1.5">
+                {Object.entries(details.data)
+                  .filter(([, value]) => value !== null && value !== undefined)
+                  .map(([key, value]) => (
+                    <div key={key} className="flex gap-2">
+                      <dt className="text-gray-500 capitalize min-w-32">
+                        {key.replace(/([A-Z])/g, " $1")}
+                      </dt>
+                      <dd className="text-gray-900 break-all">
+                        {typeof value === "object"
+                          ? JSON.stringify(value)
+                          : String(value)}
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+            )}
+            <p className="text-xs text-gray-400">
+              {formatDate(details.createdAt)}
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
